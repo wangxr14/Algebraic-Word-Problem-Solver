@@ -1,6 +1,7 @@
 import sys
 import os
 import math
+from util import *
 from collections import defaultdict
 
 TOP = "TOP"
@@ -8,19 +9,6 @@ TOP = "TOP"
 A grammatical Rule has a probability and a parent category, and is
 extended by UnaryRule and BinaryRule
 '''
-def isQuantity(w):  
-  for c in w:
-    if c > '9' or c < '0':
-      # Check if it is a floating point value or fraction
-      if c != '.':
-        return 0
-  return 1
-      
-def isMathOp(w, mathOps):
-  if w in mathOps:
-    return 1
-  return 0  
-
 class Rule:
     def __init__(self, probability, parent):
         self.prob = probability
@@ -300,6 +288,28 @@ class CFGSolver:
     if self.debug:
       print(termList)
     return termList
+
+  def findLCA(self, problem_text):
+    words = problem_text.strip().split()
+    for i, w in enumerate(words):
+      # If names of the arithmetic operation are seen in the text, assign
+      # the proper category to it with probability 1
+      # For addition and multiplication, order does not matter so two 
+      # possible pair orders are both assigned the same label; for 
+      # subtraction and division only the rightly ordered pair is assigned
+      # a label
+      if w == "add" or w == "adds":
+        self.q2lca[(words[i-1], words[i+1])] = ('+', 1.0)
+        self.q2lca[(words[i+1], words[i-1])] = ('+', 1.0)
+
+      elif w == "subtract" or w == "subtracts" or words[i:i+1] == "subtracted by":
+        self.q2lca[(words[i-1], words[i+1])] = ('-', 1.0)
+      elif w == "multiply" or w == "multiplies":
+        self.q2lca[(words[i-1], words[i+1])] = ('*', 1.0)
+      elif w == "divide" or w == "divides":
+        self.q2lca[(words[i-1], words[i+1])] = '/'
+
+
 
 '''              for op in ops:
                 if checkLCA(i, j, k, op):

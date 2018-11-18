@@ -1,0 +1,10 @@
+1.0 TOP -> E
+1.0 E -> E adds E
+1.0 E -> sum E E
+1.0 E -> E subtracts E
+1.0 E -> difference E E
+1.0 E -> E multiplies E
+1.0 E -> E multiplied E
+1.0 E -> E divides E
+1.0 E -> E divided E
+1.0 E -> Q 

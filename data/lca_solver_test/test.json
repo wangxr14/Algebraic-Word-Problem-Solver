@@ -1,0 +1,1 @@
+{"0": {"quantity_schema": {"3": {"verb": "buy", "subject": "John", "unit": "candies", "noun_phrases": ["store", "chocalates"]}, "5": {"verb": "buy", "subject": "John", "unit": "candies", "noun_phrases": ["store", "brownies"]}, "4": {"verb": "sell", "subject": "Mary", "unit": "candies", "noun_phrases": ["home", "chocalates"]}}, "question": "How many candies does John have ?"}}
