@@ -48,6 +48,7 @@ class FeatureGenerator:
       else:
         feat['np_in_question'] = 0.
 
+      feat['q_with_more_units'] = 0.
       feat['n_q_with_more_units'] = 0.
       feat['n_q'] = 0.
 
@@ -64,7 +65,9 @@ class FeatureGenerator:
         countNps2 = self.countPatternsInQuestion(nps, question)
         if countNps2 > countNps:
           feat['q_with_more_nps'] = 1.
-        
+        else:
+          feat['q with more nps'] = 0.
+
         # Find the number of quantities in the text (fewer quantities will
         # be more likely to be relevant)
         feat['n_q'] += 1.
