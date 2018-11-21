@@ -5,16 +5,17 @@ from cfg_solver import *
 DEBUG = False
 # TODO: A function to change the tree into a monotonic one
 class LcaLabelGenerator:
-  def __init__(self, equation, mathGrammarFile, debug=False):
+  def __init__(self, mathGrammarFile, debug=False):
     self.debug = debug
+ 
+  def generate(self, equation):
     self.cfgSolver = CFGSolver(equation, mathGrammarFile, debug=debug)
-    self.tree = self.cfgSolver.CKY()
+    self.tree = self.cfgSolver.CKY() 
     if self.debug:
       print(self.tree.toString())
     if not self.tree:
       print("Fail to parse")
-  
-  def generate(self):
+ 
     return findLcas(self.tree) 
 
   #def monotonicize(self):

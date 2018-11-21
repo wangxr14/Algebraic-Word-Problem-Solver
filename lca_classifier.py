@@ -4,72 +4,102 @@ import numpy as np
 
 # TODO: Implement a relevance filter
 class LCA_Classifier:
-  def __init__(self, featFileTrain, labelFileTrain, mathOps, debug=False):
+  def __init__(self, featFileTrain, mathOps, debug=False):
     self.debug = debug
     self.clf = svm.SVC(gamma='auto', probability=True)
     self.mathOps = mathOps
-    
-    # Quantity pairs
-    self.pairs = []
-    
-    # Note: self.feats and self.labels will be converted into numpy array
-    # by the loadFeatures function
-    self.feats = [] 
-    self.labels = []
-    self.loadFeatures(featFileTrain, labelFileTrain)
+    self.feats, self.labels, self.featIds, self.prblmToQs = self.loadFeatures(featFileTrain)
 
-  def loadFeatures(self, featFile, labelFile):
+  # 
+  # Description: Load features stored in a json file with the following format:
+  #   Problem_id:
+  #
+  #     'quantities':
+  #       List of all the quantities in the same order it 
+  #       appears in the problem in a list
+  #     
+  #     'features':   
+  #       Nq x Nq List of features  
+  #     'labels': 
+  #       Nq x Nq List of LCA labels
+  # 
+  # Return: FeatArrs: map problem id to feature array, LabelArrs: map problem id to labels  
+  #
+  def loadFeatures(self, featFile):
     with open(featFile, 'r') as f:
-      featDictAll = json.load(f)
+      featDict = json.load(f) 
     
-    with open(labelFile, 'r') as f:
-      labelDictAll = json.load(f)
+    lcafeatDict = featDict['lca_features']
+    labelDict = featDict['lca_labels']  
+    
+    feats = {}
+    labels = {}
+    featIds = {}
+    for pid in lcafeatDict.keys():
+      if pid not in feats.keys():
+        feats[pid] = []
+        labels[pid] = []
 
-    for problem in featDictAll.keys():
-      featDict = featDictAll[problem]
-      labelDict = labelDictAll[problem]
-      for pair in featDict.keys():
-        q1, q2 = pair[0], pair[1]
-        if self.debug:
-          print(q1, q2)
-        self.pairs.append([q1, q2])    
-        self.feats.append(list(featDict[pair].values()))
-        self.labels.append(labelDict[pair])
-    self.feats = np.array(self.feats)
-    self.labels = np.array(self.labels)
-    if self.debug:
-      print(self.feats, self.labels)
+        # Turns out this is necessary or will lose track of feature order
+        featIds[pid] = []
+      for featId in lcafeatDict[pid].keys(): 
+        featIds[pid].append(featId)
+        feats[pid].append(list(lcafeatDict[pid][featId].values()))
+        labels[pid].append(labelDict[pid][featId])
+      
+      feats[pid] = np.array(feats[pid])
+      labels[pid] = np.array(labels[pid])
     
+    prblmToQs = featDict['quantities']  
+    
+    #with open(labelFile, 'r') as f:
+    #  labelDictAll = json.load(f)
+    return feats, labels, featIds, prblmToQs       
+ 
   def fit(self):
-    self.clf.fit(self.feats, self.labels)
+    featAll = np.concatenate([self.feats[pid] for pid in self.feats.keys()])
+    labelAll = np.concatenate([self.labels[pid] for pid in self.feats.keys()])
+    if self.debug:
+      print(featAll.shape, labelAll.shape)
+    self.clf.fit(featAll, labelAll)
 
-  def predict(self, 
-              scoreFile="data/lca_solver_test/lca_score_pred.txt"):
-    self.labelsPred = self.clf.predict(self.feats)
-    self.probs = self.clf.predict_proba(self.feats)
+  def predict(self, featFile,
+              scoreFile="data/lca_solver_test/test_lca_scores.json"):
+    feats, labels, featIds, prblmToQs = self.loadFeatures(featFile)
+    scoreDict = {}
+
+    for i, pid in enumerate(feats.keys()):
+      labelsPred = self.clf.predict(feats[pid])
+      scores = self.clf.predict_logproba(feats[pid])
+    
+      if pid not in scoreDict.keys():
+        scoreDict[pid] = {}
+      for j, featId in enumerate(featIds[pid]):
+        for k, op in enumerate(self.mathOps): 
+          scoreDict[pid]['_'.join([featId, op])] = scores[j][k]
+    
+    scores_with_q = {}
+    scores_with_q["quantities"] = prblmToQs
+    scores_with_q["scores"] = scoreDict
+          
     with open(scoreFile, 'w') as f:
-      for prob, pair in zip(self.probs.tolist(), self.pairs):
-        if self.debug:
-          print(prob)
-        for i, op in enumerate(self.mathOps):
-          f.write(' '.join([pair[0], pair[1], op, str(prob[i])]))
-          f.write('\n')
-    return self.labelsPred
+      json.dump(scores_with_q, f)
+
+    return labelsPred
 
   def test(self, feats, labels):
     print(self.clf.score(feats, labels))
 
 if __name__ == "__main__":
-  labelFile = "data/lca_solver_test/label.json" 
+  #labelFile = "data/lca_solver_test/label.json" 
   # Create a sample label
-  labels = {'0':{'3 5': 1, '3 4': 2, '5 4': 2, '5 3': 1, '4 3': 3, '4 5': 3}}
-  with open(labelFile, 'w') as f:
-    json.dump(labels, f)  
+  #with open(labelFile, 'w') as f:
+  #  json.dump(labels, f)  
   
-  featFile = "data/lca_solver_test/lca_features.json"
+  featFile = "data/lca_solver_test/test_features.json"
   mathOps = ['+', '-', '-_rev'] #'*', '/', '/_rev']
 
-  lcaClf = LCA_Classifier(featFile, labelFile, mathOps, debug=True) 
+  lcaClf = LCA_Classifier(featFile, mathOps, debug=True) 
   lcaClf.fit()
-  _ = lcaClf.predict()
-  lcaClf.test(lcaClf.feats, lcaClf.labels)
+  _ = lcaClf.predict(featFile)
+  lcaClf.test(lcaClf.feats['0'], lcaClf.labels['0'])
