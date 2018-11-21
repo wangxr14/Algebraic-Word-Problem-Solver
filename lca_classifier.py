@@ -70,7 +70,7 @@ class LCA_Classifier:
 
     for i, pid in enumerate(feats.keys()):
       labelsPred = self.clf.predict(feats[pid])
-      scores = self.clf.predict_logproba(feats[pid])
+      scores = self.clf.predict_log_proba(feats[pid])
     
       if pid not in scoreDict.keys():
         scoreDict[pid] = {}
