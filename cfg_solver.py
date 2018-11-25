@@ -368,15 +368,18 @@ if __name__ == "__main__":
   #sentence = "5.5 multiplies 3 divides 2 adds 4"
   problem_file = 'number_problems.txt'
   problem_parsed_file = 'number_problems_parsed.txt'
-  with open(problem_file, 'r') as f:
+  test_file_path = 'data/cfg_solver_test/'
+  with open(test_file_path + problem_file, 'r') as f:
     sentences = f.read().strip().split('\n')
 
-  with open(problem_parsed_file, 'w') as f:
+  with open(test_file_path + problem_parsed_file, 'w') as f:
     for sentence in sentences:
       sentence = sentence.split()
-      parser = CFGSolver(sentence, "mathgrammar.pcfg", debug=True)
+      parser = CFGSolver(sentence, test_file_path + "mathgrammar.pcfg", debug=True)
       tree = parser.CKY()
       if tree: 
         print(tree.toString())
+        f.write(tree.toString())
+        f.write('\n')
       else:
         print("Fail to parse")

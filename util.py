@@ -1,3 +1,5 @@
+
+# Can use isnumeric() instead?
 def isQuantity(w):  
   for c in w:
     if c > '9' or c < '0':

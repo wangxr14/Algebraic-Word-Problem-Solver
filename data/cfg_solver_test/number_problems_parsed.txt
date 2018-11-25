@@ -1,0 +1,2 @@
+( TOP ( E ( E 6 ) divided ( E sum ( E 7 ) ( E 5 ) ) ) )
+( TOP ( E difference ( E 22 ) ( E 5 ) ) )
