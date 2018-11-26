@@ -9,12 +9,11 @@ import json
 #TODO: Implement a function to check if a tree is monotonic
 class LCASolver:
   
-  def __init__(self, mathOps, lcaScoreFile, debug=False):
+  def __init__(self, lcaScoreFile, debug=False):
     self.debug = debug
-    self.mathOps = mathOps
-    self.lcaScores, self.qs = self.readScore(lcaScoreFile)
+    self.lcaScores, self.qs, self.mathOps = self.readScore(lcaScoreFile)
     if self.debug:
-      print(self.lcaScores.keys())
+      print(self.lcaScores)
     self.qNodes = []
       
   def readScore(self, lcaScoreFile):
@@ -29,17 +28,18 @@ class LCASolver:
       scoreDict = json.load(f)
       qToLcaScores = scoreDict["scores"]
       qs = scoreDict["quantities"]
-    return qToLcaScores, qs
+      mathOps = scoreDict["math_ops"]
+    return qToLcaScores, qs, mathOps
   
   def solve(self, beamWidth=100):
     trees = []
-    if self.debug:
-      print(self.lcaScores.keys())
-      
-    for pid in sorted(self.lcaScores.keys()):  
+     
+    for pid in range(len(self.lcaScores)):  
       for i, q in enumerate(self.qs[pid]):
         # Store both the position index and the value of the quantity in 
         # a tuple as category
+        if self.debug:
+          print(pid)
         self.qNodes.append(Node(str('_'.join([str(i), q])), 0.))
       tree = self.beamSearch(self.lcaScores[pid], beamWidth)
       trees.append(tree)
@@ -130,8 +130,8 @@ class LCASolver:
 if __name__ == '__main__':
   lcaScoreFile = "data/lca_solver_test/test_lca_scores.json"
   # '-rev' and '/rev' denote scores when the order of two quantities is reversed
-  mathOps = ['+', '-', '*', '/', '-_rev', '/_rev']
-  lca_solver = LCASolver(mathOps, lcaScoreFile, debug=False)
+  # mathOps = ['+', '-', '*', '/', '-_rev', '/_rev']
+  lca_solver = LCASolver(lcaScoreFile, debug=False)
   bestTree = lca_solver.solve(beamWidth=200)
   if len(bestTree) == 0:
     print("Fail to parse")

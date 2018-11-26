@@ -1,7 +1,7 @@
 import sys
 import os
 import math
-from util import *
+from utils import *
 from collections import defaultdict
 
 TOP = "TOP"
@@ -89,6 +89,8 @@ class LeafItem(Item):
         Item.__init__(self, category, 0.0, 1)
         self.val = value
         self.numParses = 1
+        # Add this dummy field for consistency
+        self.children = ()
     
     def toString(self):
         return self.val
@@ -104,9 +106,6 @@ class InternalItem(Item):
         self.children = children
         self.value = value
         
-        # Your task is to update the number of parses for this InternalItem
-        # to reflect how many possible parses are rooted at this label
-        # for the string spanned by this item in a chart
         if len(children) == 1:
           if self.label == TOP:
             self.numParses = children[0].numParses
@@ -167,9 +166,11 @@ class Chart:
         #pass
         self.n = len(sentence)
         self.cells = [[Cell() for i in range(self.n - j)] for j in range(self.n)]
+        quantityId = 0
         for i in range(self.n):
           if isQuantity(sentence[i]):
-            leafnode = LeafItem('Q', sentence[i])
+            leafnode = LeafItem('Q', str(quantityId)+'_'+sentence[i])
+            quantityId += 1
           else:
             leafnode = LeafItem(sentence[i], sentence[i])
           self.cells[i][0].addItem(leafnode)
@@ -194,7 +195,9 @@ class CFGSolver:
     self.readGrammar(grammarFile)
     self.termList = self.extractMathTerms(sentence)  
     if self.debug:
-      print(self.termList)
+      print(grammarFile)
+      print("Term list: ", self.termList)
+      print("Op list: ", self.mathOps)
 
   def readGrammar(self, grammarFile):
       if os.path.isfile(grammarFile):

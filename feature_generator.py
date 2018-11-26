@@ -11,42 +11,30 @@ class FeatureGenerator:
               equationFile, 
               mathGrammarFile='mathGrammar.pcfg',
               debug=False):
+    self.debug = debug
     with open(problemFile, 'r') as f:
       self.problems = json.load(f)
-    with open(equationFile, 'r') as f:
-      self.equations = json.load(f)
     
-    self.lcaLabelGen = LcaLabelGenerator(mathGrammarFile)
-    self.relevanceFeatures = {}
-    self.lcaFeatures = {}
-    self.lcaLabels = {}
-    self.relevanceLabels = {}
-    self.quantities = {}
-    self.debug = debug
-
+    self.lcaLabelGen = LcaLabelGenerator(mathGrammarFile, debug=debug)
+    self.lcaLabels = self.lcaLabelGen.generateFromFile(equationFile)
+    
+    self.relevanceFeatures = [[] for i in range(len(self.problems))]
+    self.lcaFeatures = [[] for i in range(len(self.problems))]
+    self.relevanceLabels = [[] for i in range(len(self.problems))]
+    self.quantities = [[] for i in range(len(self.problems))]
+  
   def extractFeatures(self, test=False):
-    for pid in self.problems.keys():
+    for pid in range(len(self.problems)):
       self.quantities[pid] = self.problems[pid]['quantities']
       question = self.problems[pid]['question']
       schema = self.problems[pid]['quantity_schema']
-      equation = self.equations[pid]['lEquations']
       if self.debug:
-          print(problems[pid]['quantity_schema'].values())
+        print(self.problems[pid]['quantity_schema'].values())
       
-      self.relevanceFeatures[pid] = self.extractRelevanceFeature(schema, question)
-      self.lcaFeatures[pid] = self.extractLcaFeature(schema, question)
-      if test:
-        self.lcaLabels = {'0':{'0_1': 1, '0_2': 2, '1_2': 2, '1_0': 1, '2_0': 3, '2_1': 3}}
-      else:
-        self.lcaLabels[pid] = self.extractLcaLabels(equation) 
-  
-  def extractLcaLabels(self, equation):
-    expression = equation.split('=')[-1]
-    tokens = tokenizeEq(expression)
-    labels = self.lcaLabelGen.generate(tokens)
-    return labels
-
-  def extractRelevanceFeature(self, schema, question):
+      self.relevanceFeatures[pid] = self.extractRelevanceFeatures(schema, question)
+      self.lcaFeatures[pid] = self.extractLcaFeatures(schema, question)
+    
+  def extractRelevanceFeatures(self, schema, question):
     relevanceFeatures = {}
     for q in schema.keys():
       q_schema = schema[q]
@@ -107,7 +95,7 @@ class FeatureGenerator:
         count += 1
     return count
 
-  def extractLcaFeature(self, schema, question):
+  def extractLcaFeatures(self, schema, question):
     lcaFeatures = {}
     for q1 in schema.keys():
       for q2 in schema.keys():
@@ -178,11 +166,12 @@ class FeatureGenerator:
   def save(self, featFile):
     features = {}
     features['lca_features'] = self.lcaFeatures
-    features['lca_labels'] = self.lcaLabels 
+    features['lca_labels'] = self.lcaLabels['labels'] 
     features['rel_features'] = self.relevanceFeatures
     #features['rel_labels'] = self.relevanceLabels 
     features['quantities'] = self.quantities
-
+    features['math_ops'] = self.lcaLabels['mathOps']
+  
     with open(featFile, 'w') as f:
       json.dump(features, f)
 
@@ -191,9 +180,10 @@ if __name__ == "__main__":
   equationFile = "data/lca_solver_test/test_equation.json"
   relevFeatFile = "data/lca_solver_test/relev_features.json"
   lcaFeatFile = "data/lca_solver_test/lca_features.json"
+  grammarFile = "data/lca_solver_test/mathGrammar.pcfg"
   
   # Create a fake problem file
-  problems = {}
+  problems = []
   problem = {"quantity_schema":{0:{}, 1:{}, 2:{}}}
   problem["quantity_schema"][0] = {"verb":"buy", 
                   "subject":"John", 
@@ -212,9 +202,9 @@ if __name__ == "__main__":
   
   problem["question"] = "How many candies does John have ?"
   problem["quantities"] = ['3', '5', '4']
-  problems['0'] = problem
+  problems = [problem]*6
   
-  equations = {'0':{"lEquations": "X=((3.0+5.0)-4.0)"}}
+  equations = [{'iIndex':'0', "lEquations": ["X=((3.0*5.0)/4.0)"]}]*6
    
   with open(problemFile, 'w') as f:
     json.dump(problems, f)
@@ -222,6 +212,6 @@ if __name__ == "__main__":
   with open(equationFile, 'w') as f:
     json.dump(equations, f)
 
-  fgen = FeatureGenerator(problemFile, equationFile, debug=True)
-  fgen.extractFeatures(test=True)
+  fgen = FeatureGenerator(problemFile, equationFile, grammarFile, debug=False)
+  fgen.extractFeatures()
   fgen.save("data/lca_solver_test/test_features.json")

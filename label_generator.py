@@ -1,3 +1,5 @@
+import json
+from collections import deque
 from classes import *
 from utils import *
 from cfg_solver import *
@@ -5,18 +7,41 @@ from cfg_solver import *
 DEBUG = False
 # TODO: A function to change the tree into a monotonic one
 class LcaLabelGenerator:
-  def __init__(self, mathGrammarFile, debug=False):
+  def __init__(self, mathGrammarFile, mathOps=['+', '-', '*', '/', '-_rev', '/_rev'], debug=False):
     self.debug = debug
+    self.mathOps = mathOps
+    self.mathGrammarFile = mathGrammarFile
  
   def generate(self, equation):
-    self.cfgSolver = CFGSolver(equation, mathGrammarFile, debug=debug)
-    self.tree = self.cfgSolver.CKY() 
-    if self.debug:
-      print(self.tree.toString())
-    if not self.tree:
+    self.cfgSolver = CFGSolver(equation, self.mathGrammarFile, debug=self.debug)
+    tree = self.cfgSolver.CKY() 
+    if not tree:
       print("Fail to parse")
+    elif self.debug:
+      print(tree.toString())
  
-    return findLcas(self.tree) 
+    return findLcas(tree, self.mathOps) 
+
+  def generateFromFile(self, equationFile):
+    labelsDict = {}
+    labelsAll = []
+
+    with open(equationFile, 'r') as f:
+      equationInfos = json.load(f)
+    
+    for equationInfo in equationInfos:
+      equation = equationInfo["lEquations"][0].split('=')[-1]
+      eqTokens = tokenizeEq(equation)
+      if self.debug:
+        print(eqTokens)
+      labels = self.generate(eqTokens)
+      
+      #if self.debug:
+      #  print(labels)      
+      labelsAll.append(labels)
+    labelsDict['labels'] = labelsAll
+    labelsDict['mathOps'] = self.mathOps
+    return labelsDict
 
   #def monotonicize(self):
 
@@ -41,31 +66,44 @@ def findLeafIds(tree, leafIds=[]):
   
   return leafIds
 
-def findLcas(tree, pairToLcas={}, mathOps=['+', '-', '*', '/']):    
-  children = tree.children
-  if tree.label == "TOP":
-    if DEBUG:
-      print(children[0].label)
-    pairtolcas = findLcas(children[0], pairToLcas)
-  if len(children) == 3:
-    # Check the label of the middle child, which may contain the operation
-    # type between the two subtrees
-    opLabel = children[1].label
-    if opLabel in mathOps:
-      lChild = children[0]
-      rChild = children[2]
+def findLcas(tree, mathOps=['+', '-', '*', '/']):    
+  queue = deque([tree])
+  pairToLcas = {}
+  while len(queue): 
+    node = queue.popleft()
+    children = node.children
+
+    if node.label == "TOP":
       if DEBUG:
-        print(lChild.label, children[1].label, rChild.label)
-      for ql in findLeafIds(lChild):
-        for qr in findLeafIds(rChild):
-          if DEBUG:
-            print(ql, qr)
-          pairToLcas['_'.join([ql, qr])] = opLabel
-      pairToLcas = findLcas(lChild, pairToLcas)
-      pairToLcas = findLcas(rChild, pairToLcas)
-    else:
-      mChild = children[1]
-      pairToLcas = findLcas(mChild, pairToLcas)
+        print(children[0].label)
+      queue.append(children[0])  
+      #pairtolcas = findLcas(children[0], pairToLcas)
+    if len(children) == 3:
+      # Check the label of the middle child, which may contain the operation
+      # type between the two subtrees
+      opLabel = children[1].label
+      if opLabel in mathOps:
+        lChild = children[0]
+        rChild = children[2]
+        if DEBUG:
+          print(lChild.label, children[1].label, rChild.label)
+        for ql in findLeafIds(lChild):
+          for qr in findLeafIds(rChild):
+            if DEBUG:
+              print(ql, qr)
+            pairToLcas['_'.join([ql, qr])] = opLabel
+            # For noncommutative operations, add reverse operation labels
+            if opLabel == '-' or opLabel == '/':
+              pairToLcas['_'.join([qr, ql])] = opLabel + '_rev'
+            else:
+              pairToLcas['_'.join([qr, ql])] = opLabel
+
+        queue.append(lChild)
+        queue.append(rChild)
+        
+      else:
+        mChild = children[1]
+        queue.append(mChild)
     
   return pairToLcas
 
@@ -73,7 +111,10 @@ def findLcas(tree, pairToLcas={}, mathOps=['+', '-', '*', '/']):
 if __name__ == "__main__":
   equation = "( ( 13.0 + 5.0 ) - 10.0 )"
   equation = equation.split()
-  labelGen = LcaLabelGenerator(equation, "data/lca_solver_test/mathGrammar.pcfg", debug=False)
-  labels = labelGen.generate()
+  labelGen = LcaLabelGenerator("data/lca_solver_test/mathGrammar.pcfg", debug=False)
+  #labels = labelGen.generate(equation)
+  labelsDict = labelGen.generateFromFile("data/lca_solver_test/test_equation.json")
   #print(findLeafIds(labelGen.tree))
-  print(labels.items())
+  #with open("data/test_lca_solver/labels.txt", 'r') as f:
+  for labels in labelsDict['labels']:
+    print(labels.items())
