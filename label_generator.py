@@ -20,7 +20,7 @@ class LcaLabelGenerator:
     elif self.debug:
       print(tree.toString())
  
-    return findLcas(tree, self.mathOps) 
+    return tree, findLcas(tree, self.mathOps) 
 
   def generateFromFile(self, equationFile):
     labelsDict = {}
@@ -34,7 +34,7 @@ class LcaLabelGenerator:
       eqTokens = tokenizeEq(equation)
       if self.debug:
         print(eqTokens)
-      labels = self.generate(eqTokens)
+      _, labels = self.generate(eqTokens)
       
       #if self.debug:
       #  print(labels)      

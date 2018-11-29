@@ -36,7 +36,7 @@ class FeatureGenerator:
     
   def extractRelevanceFeatures(self, schema, question):
     relevanceFeatures = {}
-    for q in schema.keys():
+    for q in range(len(schema)):
       q_schema = schema[q]
       if self.debug:
         print(schema.keys()) 
@@ -45,7 +45,7 @@ class FeatureGenerator:
       verb = q_schema["verb"]
       subject = q_schema["subject"]
       units = q_schema["unit"]
-      nps = q_schema["noun_phrases"]
+      nps = q_schema["noun_phrases"] + units + [subject]
       
       # Find if the unit of the quantity appears in the question
       countUnits = self.countPatternsInQuestion(units, question)
@@ -65,7 +65,7 @@ class FeatureGenerator:
       feat['n_q_with_more_units'] = 0.
       feat['n_q'] = 0.
 
-      for q2 in schema.keys():
+      for q2 in range(len(schema)):
         # Search all quantities to see if any other quantities have more units
         # than the current unit and if so, how many quantities
         countUnits2 = self.countPatternsInQuestion(units, question)
@@ -97,8 +97,8 @@ class FeatureGenerator:
 
   def extractLcaFeatures(self, schema, question):
     lcaFeatures = {}
-    for q1 in schema.keys():
-      for q2 in schema.keys():
+    for q1 in range(len(schema)):
+      for q2 in range(len(schema)):
         if q1 == q2:
           continue
         q_schema1 = schema[q1]
@@ -159,7 +159,7 @@ class FeatureGenerator:
             feat['compare_words_in_question'] = 1.
             break
         
-        lcaFeatures['_'.join([q1, q2])] = feat
+        lcaFeatures['_'.join([str(q1), str(q2)])] = feat
 
     return lcaFeatures
 

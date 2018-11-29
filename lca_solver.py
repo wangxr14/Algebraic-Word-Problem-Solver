@@ -33,7 +33,7 @@ class LCASolver:
   
   def solve(self, beamWidth=100):
     trees = []
-     
+    lcas = []
     for pid in range(len(self.lcaScores)):  
       for i, q in enumerate(self.qs[pid]):
         # Store both the position index and the value of the quantity in 
@@ -42,9 +42,9 @@ class LCASolver:
           print(pid)
         self.qNodes.append(Node(str('_'.join([str(i), q])), 0.))
       tree = self.beamSearch(self.lcaScores[pid], beamWidth)
-      trees.append(tree)
-    
-    return trees
+      trees.append(tree[1][0].toString())
+      lcas.append(tree[1][0].findLcas())
+    return trees, lcas
 
   #
   # Perform beam search to find trees with the highest scores;
@@ -132,9 +132,9 @@ if __name__ == '__main__':
   # '-rev' and '/rev' denote scores when the order of two quantities is reversed
   # mathOps = ['+', '-', '*', '/', '-_rev', '/_rev']
   lca_solver = LCASolver(lcaScoreFile, debug=False)
-  bestTree = lca_solver.solve(beamWidth=200)
+  bestTree, _ = lca_solver.solve(beamWidth=200)
   if len(bestTree) == 0:
     print("Fail to parse")
   
   else:
-    print(bestTree[0][0], bestTree[0][1][0].toString())   
+    print(bestTree) 

@@ -10,6 +10,8 @@ class LcaFeatureLoader:
 
   def nFoldSplit(self, nFold, prefix='features'):
     self.valSize = int(len(self.featDict['lca_features']) / nFold)
+    if self.debug:
+      print(self.valSize)
     self.nFold = nFold
     featAll = self.featDict['lca_features']
     labelAll = self.featDict['lca_labels']
