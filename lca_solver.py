@@ -12,8 +12,6 @@ class LCASolver:
   def __init__(self, lcaScoreFile, debug=False):
     self.debug = debug
     self.lcaScores, self.qs, self.mathOps = self.readScore(lcaScoreFile)
-    if self.debug:
-      print(self.lcaScores)
     self.qNodes = []
       
   def readScore(self, lcaScoreFile):
@@ -35,13 +33,14 @@ class LCASolver:
     trees = []
     lcas = []
     for pid in range(len(self.lcaScores)):  
+      self.qNodes = []
       for i, q in enumerate(self.qs[pid]):
         # Store both the position index and the value of the quantity in 
         # a tuple as category
-        if self.debug:
-          print(pid)
         self.qNodes.append(Node(str('_'.join([str(i), q])), 0.))
       tree = self.beamSearch(self.lcaScores[pid], beamWidth)
+      if self.debug:
+        print(tree[1][0].toString())
       trees.append(tree[1][0].toString())
       lcas.append(tree[1][0].findLcas())
     return trees, lcas
@@ -65,17 +64,17 @@ class LCASolver:
         self.state_queue.append(score_state)
         continue
 
-      if self.debug:
-        print("Current state:")
-        self.printState(score_state)
+      #if self.debug:
+      #  print("Current state:")
+      #  self.printState(score_state)
       for q1 in s:
         for q2 in s:
           if q1.leafIds != q2.leafIds:
             for op in self.mathOps:
               score_state_next = self.merge(lcaScore, q1, q2, score_state, op)
-              if self.debug:
-                print("Next state:")
-                self.printState(score_state_next)
+              #if self.debug:
+              #  print("Next state:")
+              #  self.printState(score_state_next)
 
               self.state_queue.append(score_state_next)
               # Notice here state_queue has the type list after being sorted
@@ -85,8 +84,8 @@ class LCASolver:
 
       # Convert the state queue back to deque
       self.state_queue = deque(self.state_queue)
-    if self.debug:
-      print(self.state_queue)
+    #if self.debug:
+    #  print(self.printState(self.state_queue[0]))
     return self.state_queue[0]
 
   def finish(self):

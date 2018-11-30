@@ -6,7 +6,7 @@ from utils import *
 
 stage = 1
 dataPath = "data/multi_arith/"#"data/lca_solver_test/"
-problemFile = "problems.json" #"test_problem.json"
+problemFile = "problems_all.json" #"test_problem.json"
 equationFile = "../MultiArith.json" #"test_equation.json"
 mathGrammarFile = "mathGrammar.pcfg"  
 featFile = "features.json" #"test_features.json" 
@@ -32,7 +32,7 @@ if stage < 2:
 
 if stage < 3:
   print("Cross-validation split ...")
-  featureLoader = LcaFeatureLoader(dataPath + featFile, debug=True)
+  featureLoader = LcaFeatureLoader(dataPath + featFile, debug=False)
   featureLoader.nFoldSplit(nFold, dataPath + crossValPrefix)
 
 if stage < 4:
@@ -44,17 +44,17 @@ if stage < 4:
     lcaClassifier.fit()
     print("Crossvalidation test and compute the LCA score ...")
     _ = lcaClassifier.predict(dataPath + lcaScoreFile)
-  
+    lcaClassifier.test(np.concatenate(lcaClassifier.featVal), np.concatenate(lcaClassifier.labelVal))  
 
     # Find expression tree from LCA
     print("Solving ...")
-    lcaSolver = LCASolver(dataPath + lcaScoreFile, debug=False)
+    lcaSolver = LCASolver(dataPath + lcaScoreFile, debug=True)
     trees, lcas = lcaSolver.solve()
     print("Predicted Expression: ", trees)
-    with open(dataPath + predPrefix + '_trees.json', 'w') as f:
+    with open(dataPath + predPrefix + '_trees_' + str(i) + '.json', 'w') as f:
       json.dump(trees, f)
     
-    with open(dataPath + predPrefix + '_lcas.json', 'w') as f:
+    with open(dataPath + predPrefix + '_lcas_' + str(i) + '.json', 'w') as f:
       json.dump(lcas, f)
 
 
