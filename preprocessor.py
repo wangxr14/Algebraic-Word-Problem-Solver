@@ -2,9 +2,10 @@ import json
 import os
 from nltk.tree import ParentedTree
 from nltk.parse import stanford
-from quantity_schema import *
+from quantity_schema2 import *
 from utils import *
 
+# TODO: pretty print in json
 class Preprocessor:
   def __init__(self, rawProblemFile, debug=False):
     self.debug = debug
@@ -23,24 +24,50 @@ class Preprocessor:
   
   def extractQuantitySchema(self):
     qSchemas = []
-    for problem in self.problems:
+    for i, problem in enumerate(self.problems):
+      print('Problem', i)
+      # TODO: Use the tokenizer instead: can be a problem when dealing with
+      # floating point values
       sents = problem['sQuestion'].split('.')
       pSents = self.pcfgParser.raw_parse_sents(sents)
       dSents = self.depParser.raw_parse_sents(sents)
       
       schemas = {'quantities':[], 'quantity_schema':[]}
-      for pline, dline in zip(pSents, dSents):
+      for j, (pline, dline) in enumerate(zip(pSents, dSents)):
         for psent, dsent in zip(pline, dline):
           pcfgTree = ParentedTree.fromstring(str(psent)) 
           depTree = dsent 
-          schema = dealWithSentence(pcfgTree, depTree) 
-          schemas = self.addSchema(schema, schemas)
+          schema = dealWithSentence(pcfgTree, depTree)
+          # Label each verb with the sentence order
+          for k, q_schema in enumerate(schema['quantity_schema']):
+            q_schema['verb'] = str(j) + '_' + q_schema['verb']
+            schemas['quantity_schema'].append(q_schema)
           
+          schemas['quantities'] += schema['quantities']
+          
+        n = len(schemas['quantities']) 
+        # Compensate for the missing units
+        for k in range(n):
+          if not schemas['quantity_schema'][k]['unit']:
+              found = 0
+              for l in range(k):
+                if schemas['quantity_schema'][k-l]['unit']:
+                  schemas['quantity_schema'][k]['unit'] = schemas['quantity_schema'][k-l]['unit']
+                  found = 1
+                  break
+              if found:
+                continue
+              else:
+                for l in range(n - k):
+                  if schemas['quantity_schema'][k+l]['unit']:
+                    schemas['quantity_schema'][k]['unit'] = schemas['quantity_schema'][k+l]['unit']
+                    break
+ 
       schemas['question'] = self.findQuestion(sents)
 
-      if self.debug:
-        quantities = schemas['quantities']
-        print(quantities, schemas.items())
+      #if self.debug:
+      quantities = schemas['quantities']
+      print(quantities, schemas)
       qSchemas.append(schemas)
     return qSchemas
 
@@ -55,7 +82,7 @@ class Preprocessor:
   def addSchema(self, schema, schemas):
     qs = schema["quantities"]
     qSchemas = schema["quantity_schema"]
-    for i, qSchema in sorted(qSchemas.items(), key=lambda x:int(x[0])):
+    for i, qSchema in enumerate(qSchemas):      
       schemas['quantity_schema'].append(qSchema)
     
     schemas['quantities'] += qs
@@ -71,5 +98,5 @@ class Preprocessor:
 #def posTagging():
 
 if __name__ == "__main__":
-  prep = Preprocessor("data/MultiArith.json", True)
-  prep.prepare("data/multi_arith/problems_all.json") 
+  prep = Preprocessor("data/MultiArith.json", False)
+  prep.prepare("data/multi_arith/schema_all.json") 

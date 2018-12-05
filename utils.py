@@ -1,3 +1,5 @@
+import nltk
+
 def isQuantity(w):  
   for c in w:
     if c > '9' or c < '0':
@@ -25,4 +27,17 @@ def tokenizeEq(equation):
     else:
       tokens.append(equation[i])
       i += 1
-  return tokens  
+  return tokens
+  
+def tokenizeProblem(p_text):
+  tokens = nltk.pos_tag(p_text)
+  tokenized_problem = []
+  cur_sent = []
+    
+  for t in tokens:
+    if t != '.':
+      cur_sent.append(t)
+    else:
+      tokenized_problem.append(cur_sent)
+      cur_sent = []
+  return tokenized_problem

@@ -4,9 +4,10 @@ from lca_solver import *
 from data_loader import *
 from utils import *
 
-stage = 1
+stage = 3
 dataPath = "data/multi_arith/"#"data/lca_solver_test/"
-problemFile = "problems_all.json" #"test_problem.json"
+schemaFile = "problems_all.json" #"test_problem.json"
+problemFile = "../MultiArith.json"
 equationFile = "../MultiArith.json" #"test_equation.json"
 mathGrammarFile = "mathGrammar.pcfg"  
 featFile = "features.json" #"test_features.json" 
@@ -23,7 +24,8 @@ if stage < 1:
 if stage < 2:
   # Feature extraction
   print("Extracting the features ...")
-  featureGenerator = FeatureGenerator(dataPath + problemFile, 
+  featureGenerator = FeatureGenerator(dataPath + schemaFile,
+                                      dataPath + problemFile, 
                                       dataPath + equationFile, 
                                       dataPath + mathGrammarFile,
                                       debug=False)
@@ -40,7 +42,7 @@ if stage < 4:
   for i in range(nFold):
     featFileTest = dataPath + crossValPrefix + '_' + str(i) + '.json'
     # LCA classification
-    lcaClassifier = LCA_Classifier(featFileTest)
+    lcaClassifier = LCA_Classifier(featFileTest, debug=True)
     lcaClassifier.fit()
     print("Crossvalidation test and compute the LCA score ...")
     _ = lcaClassifier.predict(dataPath + lcaScoreFile)

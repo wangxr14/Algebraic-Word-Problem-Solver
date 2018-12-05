@@ -7,6 +7,7 @@ from nltk.tree import ParentedTree
 from collections import deque
 
 DEBUG = True
+TOP = 'TOP'
 def find_associated_verb(depTree):
     a_verb_nodes = []
     quantities = []
@@ -18,24 +19,39 @@ def find_associated_verb(depTree):
     # until a verb is hit
     for nodeId in sorted(depTree.nodes.keys()):
       node = depTree.nodes[nodeId]
-      if DEBUG:
-        print(node)
+      if node['tag'] == TOP:
+        print('Node without word: ', node)
+        continue
+
       # Find the associated verb for each quantity
-      if node['tag'] in quantity_label and isQuantity(node['word']):
+      if isQuantity(node['word']):
         quantities.append(node)
         a_verb_node = depTree.nodes[node['head']] 
-        while a_verb_node:
-          print('Current ancestor node: ', a_verb_node)
+        while a_verb_node['tag'] != TOP:
+          if DEBUG:
+            print('Current ancestor node: ', a_verb_node['word'], a_verb_node['tag'])
           if a_verb_node['tag'][0] in verb_prefix:
             if DEBUG:
               print(a_verb_node['tag'])
             a_verb_nodes.append(a_verb_node)
             break
           else:
-            a_verb_node = depTree.nodes[a_verb_node['head']]
-    
-    if DEBUG:
-      print("Quantities:", quantities)
+            # Special case: VBZ like "is" may not be the head verb of a
+            # quantity node, but rather a sibling of it
+            deps = a_verb_node['deps']
+            found = 0
+            for dep, indices in deps.items():
+              for i in indices:
+                if DEBUG:
+                  print("Current node:", i, depTree.nodes[i]['tag'], depTree.nodes[i]['word'])
+                if depTree.nodes[i]['tag'][0] in verb_prefix:
+                  a_verb_node = depTree.nodes[i]
+                  found = 1
+                else:
+                  a_verb_node = depTree.nodes[a_verb_node['head']]
+              if found:
+                break
+
     return a_verb_nodes, quantities 
 
 #
@@ -50,9 +66,6 @@ def find_subject(depTree):
     for nodeId in sorted(depTree.nodes.keys()):
       node = depTree.nodes[nodeId]
      
-      if DEBUG:
-        print(node)
-    
       if node['rel'] in subj_label:
         subject_node = node 
         break
@@ -76,7 +89,8 @@ def find_unit(node):
 
         for node in nodes:
           # Check if the current node is a unit, and if so, add it to the list
-          print(node.label())
+          if DEBUG:
+            print(node.label())
           if node.label()[0] in unit_prefix and not node.label() in search_labels:
             units.append(node)
 
@@ -132,7 +146,7 @@ def dealWithSentence(pcfgTree, depTree):
     retObj={}
     # Get quantities
     retObj['quantities'] = []
-    retObj['quantity_schema'] = {}
+    retObj['quantity_schema'] = []
     quantity_node_list = find_quantities(pcfgTree)
     if DEBUG:
       print(quantity_node_list)
@@ -143,8 +157,16 @@ def dealWithSentence(pcfgTree, depTree):
         quantityObj = {}
         # Detect associated verb
         #a_verb_node = find_associated_verb(node)
-        quantityObj['verb'] = a_verb_nodes[i]['word']
-        
+        print(a_verb_nodes, quantity_node_list)
+        if i >= len(a_verb_nodes):
+          break
+        if a_verb_nodes[i]:
+          quantityObj['verb'] = a_verb_nodes[i]['word']
+        else:
+          if i > 0:
+            quantityObj['verb'] = a_verb_nodes[i-1]['word']
+          
+
         # Subject
         if subject_node:
           quantityObj['subject'] = subject_node['word']
@@ -186,8 +208,17 @@ def dealWithSentence(pcfgTree, depTree):
         
         # Question
         # Add to retObj
-        retObj['quantity_schema'][i] = quantityObj
+        retObj['quantity_schema'].append(quantityObj)
         retObj['quantities'].append(q.leaves()[0]) 
+    
+    # Check again if the associated verb for the first quantity is empty,
+    # and if so, use the verb from the next nearby quantities
+    for i, qObj in enumerate(retObj['quantity_schema']):
+      if DEBUG:
+        print('qObj: ', qObj)
+      if not qObj['verb']:
+        retObj['quantity_schema'][i]['verb'] = retObj['quantity_schema'][i+1]['verb'] 
+ 
     return retObj
 
 if __name__ == "__main__":
@@ -201,7 +232,9 @@ if __name__ == "__main__":
   os.environ['STANFORD_PARSER'] = '/Users/liming/nltk_data/stanford-parser-full-2018-10-17/'
   os.environ['STANFORD_MODELS'] = '/Users/liming/nltk_data/stanford-parser-full-2018-10-17/'
 
-  sent = "One had 23 pictures and the other had 32"#"John buys 3 candles and 5 cakes at a chocolate store" 
+  sent = "If each question was worth 5 points, what was his final score?" 
+  #"While playing a trivia game, Adam answered 5 questions correct in the first half and 5 questions correct in the second half" 
+  #"One had 23 pictures and the other had 32"#"John buys 3 candles and 5 cakes at a chocolate store" 
   pcfgParser = stanford.StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
   depParser = stanford.StanfordDependencyParser()
   
@@ -218,7 +251,7 @@ if __name__ == "__main__":
   for res in sentences_dep:
     depGraph = res
   
-  print(depGraph)
+  print(depGraph.tree())
   '''a_verbs, _ = find_associated_verb(depGraph)
   subj = find_subject(depGraph)
   quantities = find_quantities(pcfg_tree)
@@ -238,6 +271,4 @@ if __name__ == "__main__":
 
   retObj = dealWithSentence(pcfg_tree, depGraph) 
   print(retObj.items())
-  #p_sentence.draw()
-
-  
+  #p_sentence.draw() 

@@ -39,14 +39,26 @@ class LCA_Classifier:
       # Turns out this is necessary or will lose track of feature order
       featIds.append([])
 
+      # Go through each type of the features for each quantity pairs
+      # and convert them into a single vector
       for featId in lcafeatDict[pid].keys(): 
         featIds[pid].append(featId)
-        feats[pid].append(list(lcafeatDict[pid][featId].values()))
-        # Weird to have pid to be str instead of integer, may change later
+        feat = []
+        for feat_elem in list(lcafeatDict[pid][featId].values()):
+          if isinstance(feat_elem, list):
+            feat += feat_elem
+            if self.debug:
+              print('Find list')
+          else:
+            feat.append(feat_elem)
+        feats[pid].append(feat)
+        # TODO: weird to have pid to be str instead of integer, may change later
         if self.debug:
-          print(labelDict[int(pid)])
-        labels[pid].append(self.opToId[labelDict[int(pid)][featId]])
-      
+          print(labelDict[int(pid)], featId)
+        op = labelDict[int(pid)][featId]
+        labels[pid].append(self.opToId[op])
+      #if self.debug:
+      #  print(feats[pid]) 
       feats[pid] = np.array(feats[pid])
       labels[pid] = np.array(labels[pid])
 
