@@ -1,6 +1,6 @@
 from collections import deque
 
-DEBUG = False
+DEBUG = True
 class Item:
 
     def __init__(self, label, prob, numParses):
@@ -94,3 +94,9 @@ class Node(Item):
         for child in self.children:
             ret += child.toString() + " "
         return ret + ")"
+
+if __name__ == "__main__":
+  a = Node('1', 1.0)
+  b = Node('2', 1.0)
+  c = Node('+', 1.0, (a, b))
+  print(c.findLcas())

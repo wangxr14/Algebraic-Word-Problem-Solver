@@ -9,11 +9,12 @@ import json
 #TODO: Implement a function to check if a tree is monotonic
 class LCASolver:
   
-  def __init__(self, lcaScoreFile, debug=False):
+  def __init__(self, lcaScoreFile, reversible=['+', '*'], debug=False):
     self.debug = debug
     self.lcaScores, self.qs, self.mathOps = self.readScore(lcaScoreFile)
     self.qNodes = []
-      
+    self.reversible = reversible
+
   def readScore(self, lcaScoreFile):
     qToLcaScores = {}
     with open(lcaScoreFile, 'r') as f:
@@ -42,7 +43,7 @@ class LCASolver:
       if self.debug:
         print(tree[1][0].toString())
       trees.append(tree[1][0].toString())
-      lcas.append(tree[1][0].findLcas())
+      lcas.append(self.findLcas(tree[1][0]))
     return trees, lcas
 
   #
@@ -126,14 +127,44 @@ class LCASolver:
       state_nodes.append([node.leafIds, node.label])
     print(score, state_nodes)
 
+  def findLcas(self, node):
+    qToLcas = {}
+    node_queue = deque([node])
+    while node_queue:
+      cur_node = node_queue.popleft()
+      if len(cur_node.children) > 2:
+        raise ValueError('Number of children is asserted to be at most 2')
+      # Check if the current node is a leaf node
+      elif not len(cur_node.children):
+        continue
+      l_child, r_child = cur_node.children
+      for q_l in l_child.leafIds:
+        for q_r in r_child.leafIds:
+          pos_l = q_l.split('_')[0]
+          pos_r = q_r.split('_')[0]
+          qToLcas[pos_l + '_' + pos_r] = cur_node.label
+          if cur_node.label in self.reversible:
+            qToLcas[pos_r + '_' + pos_l] = cur_node.label
+          else:
+            if cur_node.label.split('_')[-1] == 'rev':
+              qToLcas[pos_r + '_' + pos_l] = cur_node.label.split('_')[0]
+            else:
+              qToLcas[pos_r + '_' + pos_l] = cur_node.label + '_rev'
+          
+
+      node_queue.append(l_child)
+      node_queue.append(r_child)
+  
+    return qToLcas
+
 if __name__ == '__main__':
   lcaScoreFile = "data/lca_solver_test/test_lca_scores.json"
   # '-rev' and '/rev' denote scores when the order of two quantities is reversed
   # mathOps = ['+', '-', '*', '/', '-_rev', '/_rev']
-  lca_solver = LCASolver(lcaScoreFile, debug=False)
-  bestTree, _ = lca_solver.solve(beamWidth=200)
+  lca_solver = LCASolver(lcaScoreFile, debug=True)
+  bestTree, qToLcas = lca_solver.solve(beamWidth=200)
   if len(bestTree) == 0:
     print("Fail to parse")
   
   else:
-    print(bestTree) 
+    print(bestTree, qToLcas) 
