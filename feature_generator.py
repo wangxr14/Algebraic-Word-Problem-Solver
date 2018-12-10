@@ -43,10 +43,11 @@ class Unigram:
 
   def extract(self, sentence, window_size=5):
     v = np.zeros((window_size,))
+    count = 0
     for i, w in enumerate(sentence):
       if w in self.word2id:
-        v[self.word2id[w]] = 1
-    
+        v[count] = self.word2id[w]
+        count += 1
     return v.tolist() 
 
 #class CountGram:
@@ -89,10 +90,8 @@ class BoW:
     v = np.zeros((self.nvocab,))
     for i, w in enumerate(sentence):
       if w in self.word2id:
-        v[i] = self.word2id[w]
+        v[self.word2id[w]] = 1
     return v.tolist()
-
-
 
 # TODO: Add a function to filter out irrelevant quantities
 class FeatureGenerator:
