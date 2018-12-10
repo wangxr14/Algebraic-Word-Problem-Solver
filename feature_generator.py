@@ -9,6 +9,7 @@ from utils import *
 class Unigram:
   def __init__(self,
               rawProblemFile,
+              filter_tags=['JJ', 'JJR', 'RBR'],
               debug=False):
     self.debug = debug
     with open(rawProblemFile, 'r') as f:
@@ -19,30 +20,79 @@ class Unigram:
       self.corpus.append([])
       p_text = p['sQuestion']
       
-      # TODO: Implement tokenization; this may not work if the numbers contain decimal point
       sents_raw = nltk.word_tokenize(p_text) 
       self.corpus[i] = sents_raw
 
     self.word2id = {}
     count = 0
     for sents in self.corpus:
-      for w in sents:
+      pos_tags = nltk.pos_tag(sents)
+      for i, w in enumerate(sents):
         if w not in self.word2id:
-          self.word2id[w] = count
-          count += 1
+          # Check if the word is a verb, if so,
+          # count it
+          if pos_tags[i][1][0] == 'V': 
+            self.word2id[w] = count
+            count += 1
+          elif pos_tags[i][1] in filter_tags:
+            self.word2id[w] = count
+            count += 1
     self.word2id['UNK'] = count
-    self.nvocab = count + 1 
-    print("Total number of vocabs:", count)
+    self.nvocab = count + 1
+    print("Total number of vocabs with the desired tags:", count)
+
+  def extract(self, sentence, window_size=5):
+    v = np.zeros((window_size,))
+    for i, w in enumerate(sentence):
+      if w in self.word2id:
+        v[self.word2id[w]] = 1
+    
+    return v.tolist() 
+
+#class CountGram:
+class BoW:
+  def __init__(self,
+              rawProblemFile,
+              filter_tags=['JJ', 'JJR', 'RBR'],
+              debug=False):
+    self.debug = debug
+    with open(rawProblemFile, 'r') as f:
+      self.problems = json.load(f)
+    
+    self.corpus = []
+    for i, p in enumerate(self.problems):
+      self.corpus.append([])
+      p_text = p['sQuestion']
+      
+      sents_raw = nltk.word_tokenize(p_text) 
+      self.corpus[i] = sents_raw
+
+    self.word2id = {}
+    count = 0
+    for sents in self.corpus:
+      pos_tags = nltk.pos_tag(sents)
+      for i, w in enumerate(sents):
+        if w not in self.word2id:
+          # Check if the word is a verb, if so,
+          # count it
+          if pos_tags[i][1][0] == 'V': 
+            self.word2id[w] = count
+            count += 1
+          elif pos_tags[i][1] in filter_tags:
+            self.word2id[w] = count
+            count += 1
+    self.word2id['UNK'] = count
+    self.nvocab = count + 1
+    print("Total number of vocabs with the desired tags:", count)
 
   def extract(self, sentence):
     v = np.zeros((self.nvocab,))
-    for w in sentence:
+    for i, w in enumerate(sentence):
       if w in self.word2id:
-        v[self.word2id[w]] = 1.
-      else:
-        v[self.word2id['UNK']] = 1.        
-
+        v[i] = self.word2id[w]
     return v.tolist()
+
+
 
 # TODO: Add a function to filter out irrelevant quantities
 class FeatureGenerator:
@@ -56,6 +106,7 @@ class FeatureGenerator:
     with open(schemaFile, 'r') as f:
       self.problems = json.load(f)
     
+    self.bow = BoW(problemFile)
     self.unigram = Unigram(problemFile)
 
     self.lcaLabelGen = LcaLabelGenerator(mathGrammarFile, debug=debug)
@@ -66,7 +117,7 @@ class FeatureGenerator:
     self.relevanceLabels = [[] for i in range(len(self.problems))]
     self.quantities = [[] for i in range(len(self.problems))]
   
-  def extractFeatures(self, test=False):
+  def extractFeatures(self, feat_choices, test=False):
     for pid in range(len(self.problems)):
       print('Problem', pid)
       self.quantities[pid] = self.problems[pid]['quantities']
@@ -77,7 +128,7 @@ class FeatureGenerator:
         print(self.problems[pid]['quantity_schema'])
       
       #self.relevanceFeatures[pid] = self.extractRelevanceFeatures(schema, question)
-      self.lcaFeatures[pid] = self.extractLcaFeatures(schema, question, p_text)
+      self.lcaFeatures[pid] = self.extractLcaFeatures(schema, question, p_text, feat_choices)
     
   def extractRelevanceFeatures(self, schema, question):
     relevanceFeatures = {}
@@ -145,20 +196,25 @@ class FeatureGenerator:
                         schema, 
                         question,
                         p_text, 
-                        use_individual=True):
+                        feat_choices):
     lcaFeatures = {}
-    vs = []
-    if use_individual:
-      # Find the unigram feature for each quantity with neighboring 
-      # adjective and adverbs as context
-      q_contexts = self.extractQuantityContext(p_text)
-        
-      for q in range(len(schema)):
+    bows = []
+    unigrams = []
+    q_contexts = self.extractQuantityContext(p_text)
+       
+    # Find the unigram feature for each quantity with neighboring 
+    # adjective and adverbs as context   
+    for q in range(len(schema)):
         q_schema = schema[q]
         verb = [q_schema['verb'].split('_')[-1]]
-        v = self.unigram.extract(verb + q_contexts[q])
-        vs.append(v)
-
+        if feat_choices['bag-of-words']:
+          v = self.bow.extract(verb + q_contexts[q])
+          bows.append(v)
+    
+        if feat_choices['unigram']:
+          v = self.unigram.extract(verb + q_contexts[q])
+          unigrams.append(v)
+    
     for q1 in range(len(schema)):
       for q2 in range(len(schema)):
         if self.debug:
@@ -173,15 +229,26 @@ class FeatureGenerator:
         q_schema2 = schema[q2]
 
         feat = {} #np.zeros((5,))
-      
+        
         verb1, verb2 = q_schema1["verb"], q_schema2["verb"]
         subject1, subject2 = q_schema1["subject"], q_schema2["subject"]
         units1, units2 = q_schema1["unit"], q_schema2["unit"]
         rate1, rate2 = q_schema1["rate"], q_schema2["rate"]
         nps1, nps2 = q_schema1["noun_phrases"], q_schema2["noun_phrases"]
         
-        feat['unigram_1'] = vs[q1]
-        feat['unigram_2'] = vs[q2]  
+        if feat_choices['bag-of-words']:
+          feat['bow_1'] = bows[q1] 
+          feat['bow_2'] = bows[q2]
+
+        # TODO: decide whether binary-coded indices or integer indices are better
+        if feat_choices['unigram']:
+          feat['unigram_1'] = unigrams[q1]
+          feat['unigram_2'] = unigrams[q2]
+
+        if not feat_choices['exact_mention']:
+          verb1 = verb1.split('_')[-1]
+          verb2 = verb2.split('_')[-1]
+           
         if verb1 == verb2:
           feat['verb_match'] = 1.
         else:
@@ -321,6 +388,6 @@ if __name__ == "__main__":
   with open(equationFile, 'w') as f:
     json.dump(equations, f)
   '''
-  fgen = FeatureGenerator(schemaFile, problemFile, equationFile, grammarFile, debug=True)
-  fgen.extractFeatures()
+  fgen = FeatureGenerator(schemaFile, problemFile, equationFile, grammarFile, debug=False)
+  fgen.extractFeatures(feat_choices={'bag-of-words':False, 'unigram':True, 'exact_mention':False})
   fgen.save("data/multi_arith/features.json")
