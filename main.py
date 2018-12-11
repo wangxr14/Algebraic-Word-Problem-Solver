@@ -18,6 +18,11 @@ lcaScorePrefix = "lca_scores" #"test_lca_scores.json"
 predPrefix = "pred"
 goldPrefix = "gold"
 nFold = 6
+feat_choices = {
+                'bag-of-words': False,
+                'unigram': True,
+                'exact_mention': False
+                }
 
 if stage < 1:
   # Preprocessing
@@ -32,7 +37,7 @@ if stage < 2:
                                       dataPath + equationFile, 
                                       dataPath + mathGrammarFile,
                                       debug=False)
-  featureGenerator.extractFeatures()
+  featureGenerator.extractFeatures(feat_choices)
   featureGenerator.save(dataPath + featFile)
 
 if stage < 3:
