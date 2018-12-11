@@ -6,7 +6,7 @@ from data_loader import *
 from evaluator import *
 from utils import *
 
-stage = 5
+stage = 1
 dataPath = "data/multi_arith/"#"data/lca_solver_test/"
 schemaFile = "problems_all.json" #"test_problem.json"
 problemFile = "../MultiArith.json"
