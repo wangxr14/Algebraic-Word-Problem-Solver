@@ -50,12 +50,18 @@ class Preprocessor:
         for k in range(n):
           if not schemas['quantity_schema'][k]['unit']:
               found = 0
+               
               for l in range(k):
-                if schemas['quantity_schema'][k-l]['unit']:
-                  schemas['quantity_schema'][k]['unit'] = schemas['quantity_schema'][k-l]['unit']
+                if self.debug:
+                  print('Detected missing unit, replaced with: ', schemas['quantity_schema'][k-l-1]['unit'])
+               
+                if schemas['quantity_schema'][k-l-1]['unit']:
+                  schemas['quantity_schema'][k]['unit'] = schemas['quantity_schema'][k-l-1]['unit']
                   found = 1
                   break
               if found:
+                if self.debug:
+                  print('Found missing unit')
                 continue
               else:
                 for l in range(n - k):
@@ -98,5 +104,5 @@ class Preprocessor:
 #def posTagging():
 
 if __name__ == "__main__":
-  prep = Preprocessor("data/MultiArith.json", False)
-  prep.prepare("data/multi_arith/schema_all.json") 
+  prep = Preprocessor("data/single_op/SingleOp.json", True)
+  prep.prepare("data/single_op/schema_all.json") 

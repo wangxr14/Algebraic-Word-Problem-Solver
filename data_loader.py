@@ -17,7 +17,6 @@ class LcaFeatureLoader:
     labelAll = self.featDict['lca_labels']
     quantityAll = self.featDict['quantities'] 
     mathOps = self.featDict['math_ops'] 
-
     for i in range(self.nFold):
       featVal = featAll[i*self.valSize:(i+1)*self.valSize] 
       labelVal = labelAll[i*self.valSize:(i+1)*self.valSize] 
@@ -46,7 +45,7 @@ class LcaFeatureLoader:
       crossValFile = prefix + '_' + str(i) + '.json'
 
       with open(crossValFile, 'w') as f:
-        json.dump(crossValDict, f)
+        json.dump(crossValDict, f, indent=4, sort_keys=True)
 
 if __name__ == "__main__":
   featFile = "data/lca_solver_test/test_features.json"

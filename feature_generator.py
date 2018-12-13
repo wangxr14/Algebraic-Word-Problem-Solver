@@ -41,7 +41,7 @@ class Unigram:
     self.nvocab = count + 1
     print("Total number of vocabs with the desired tags:", count)
 
-  def extract(self, sentence, window_size=5):
+  def extract(self, sentence, window_size=6):
     v = np.zeros((window_size,))
     count = 0
     for i, w in enumerate(sentence):
@@ -105,6 +105,9 @@ class FeatureGenerator:
     with open(schemaFile, 'r') as f:
       self.problems = json.load(f)
     
+    with open(problemFile, 'r') as f:
+      self.raw_problems = json.load(f)
+    # TODO: Confusing: self.bow.problems store the raw problems while self.problems store the quantity schemas
     self.bow = BoW(problemFile)
     self.unigram = Unigram(problemFile)
 
@@ -128,7 +131,8 @@ class FeatureGenerator:
       
       #self.relevanceFeatures[pid] = self.extractRelevanceFeatures(schema, question)
       self.lcaFeatures[pid] = self.extractLcaFeatures(schema, question, p_text, feat_choices)
-    
+      self.lcaFeatures[pid]['iIndex'] = self.raw_problems[pid]['iIndex']
+
   def extractRelevanceFeatures(self, schema, question):
     relevanceFeatures = {}
     for q in range(len(schema)):
@@ -244,14 +248,16 @@ class FeatureGenerator:
           feat['unigram_1'] = unigrams[q1]
           feat['unigram_2'] = unigrams[q2]
 
-        if not feat_choices['exact_mention']:
-          verb1 = verb1.split('_')[-1]
-          verb2 = verb2.split('_')[-1]
+        if feat_choices['exact_mention']:
+          feat['verb_match_pos'] = float(verb1 == verb2)
+        
+        verb1 = verb1.split('_')[-1]
+        verb2 = verb2.split('_')[-1]
            
         if verb1 == verb2:
-          feat['verb_match'] = 1.
+          feat['verb_match_form'] = 1.
         else:
-          feat['verb_match'] = 0.
+          feat['verb_match_form'] = 0.
 
         if len(rate1):
           feat['is_rate_1'] = 1.
@@ -263,7 +269,7 @@ class FeatureGenerator:
         else:
           feat['is_rate_2'] = 0.
   
-        if units1 == units2:
+        if len(set(units1).intersection(set(units2))) > 0:
           feat['unit_match'] = 1.
         else:
           feat['unit_match'] = 0.
@@ -342,7 +348,7 @@ class FeatureGenerator:
     #features['rel_labels'] = self.relevanceLabels 
     features['quantities'] = self.quantities
     features['math_ops'] = self.lcaLabels['mathOps']
-  
+    
     with open(featFile, 'w') as f:
       json.dump(features, f, indent=4, sort_keys=True)
 

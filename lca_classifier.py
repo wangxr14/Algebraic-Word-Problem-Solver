@@ -42,6 +42,8 @@ class LCA_Classifier:
       # Go through each type of the features for each quantity pairs
       # and convert them into a single vector
       for featId in lcafeatDict[pid].keys(): 
+        if featId == 'iIndex': 
+          continue
         featIds[pid].append(featId)
         feat = []
         for feat_elem in list(lcafeatDict[pid][featId].values()):
@@ -105,7 +107,7 @@ class LCA_Classifier:
     scoresInfo["math_ops"] = self.mathOps
           
     with open(scoreFile, 'w') as f:
-      json.dump(scoresInfo, f)
+      json.dump(scoresInfo, f, indent=4, sort_keys=True)
 
   def predictFromFile(self, featFile,
               scoreFile="data/lca_solver_test/test_lca_scores.json"):
@@ -141,7 +143,7 @@ class LCA_Classifier:
     scoresInfo["math_ops"] = self.mathOps
           
     with open(scoreFile, 'w') as f:
-      json.dump(scoresInfo, f)
+      json.dump(scoresInfo, f, indent=4, sort_keys=True)
 
     return labelsPred
 

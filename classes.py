@@ -94,9 +94,53 @@ class Node(Item):
         for child in self.children:
             ret += child.toString() + " "
         return ret + ")"
+    
+    def eval(self):
+      if self.label == '+':
+        return self.children[0].eval() + self.children[1].eval() 
+      elif self.label == '-':  
+        return self.children[0].eval() - self.children[1].eval() 
+      elif self.label == '*':
+        return self.children[0].eval() * self.children[1].eval() 
+      elif self.label == '/':
+        if self.children[1].eval() == 0.:
+          return -11111.111
+        return self.children[0].eval() / self.children[1].eval() 
+      elif self.label == '-_rev':
+        return self.children[1].eval() - self.children[0].eval() 
+      elif self.label == '/_rev':
+        if self.children[0].eval() == 0.:
+          return -11111.111  
+        return self.children[1].eval() / self.children[0].eval() 
+      else:
+        return float(self.label.split('_')[-1])
+      
+
 
 if __name__ == "__main__":
-  a = Node('1', 1.0)
-  b = Node('2', 1.0)
+  a = Node('1_1', 1.0)
+  b = Node('2_2', 1.0)
   c = Node('+', 1.0, (a, b))
+  print(a.findLcas())
+  print(c.eval())
+
+  c = Node('-', 1.0, (a, b))
   print(c.findLcas())
+  print(c.eval())
+
+  c = Node('*', 1.0, (a, b))
+  print(c.findLcas())
+  print(c.eval())
+
+  c = Node('/', 1.0, (a, b))
+  print(c.findLcas())
+  print(c.eval())
+  
+  c = Node('-_rev', 1.0, (a, b))
+  print(c.findLcas())
+  print(c.eval())
+
+  c = Node('/_rev', 1.0, (a, b))
+  print(c.findLcas())
+  print(c.eval())
+
