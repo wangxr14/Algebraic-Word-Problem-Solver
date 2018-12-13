@@ -9,8 +9,8 @@ from utils import *
 stage = 1
 dataPath = "data/multi_arith/"#"data/lca_solver_test/"
 schemaFile = "problems_all.json" #"test_problem.json"
-problemFile = "../MultiArith.json"
-equationFile = "../MultiArith.json" #"test_equation.json"
+problemFile = "../AddSub.json"
+equationFile = "../AddSub.json" #"test_equation.json"
 mathGrammarFile = "mathGrammar.pcfg"  
 featFile = "features.json" #"test_features.json" 
 crossValPrefix = "features_6fold" #"test_features_6fold"
@@ -36,7 +36,7 @@ if stage < 2:
                                       dataPath + problemFile, 
                                       dataPath + equationFile, 
                                       dataPath + mathGrammarFile,
-                                      debug=False)
+                                      debug=True)
   featureGenerator.extractFeatures(feat_choices)
   featureGenerator.save(dataPath + featFile)
 

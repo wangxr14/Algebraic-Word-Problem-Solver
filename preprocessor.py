@@ -11,10 +11,10 @@ class Preprocessor:
     self.debug = debug
     with open(rawProblemFile, 'r') as f:
       self.problems = json.load(f)
-    os.environ['STANFORD_PARSER'] = '/Users/liming/nltk_data/stanford-parser-full-2018-10-17/'
-    os.environ['STANFORD_MODELS'] = '/Users/liming/nltk_data/stanford-parser-full-2018-10-17/'
+    os.environ['STANFORD_PARSER'] = 'E://workplace/stanford-parser/jars/stanford-parser.jar'
+    os.environ['STANFORD_MODELS'] = 'E://workplace/stanford-parser/jars/stanford-parser-3.9.2-models.jar'
 
-    self.pcfgParser = stanford.StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
+    self.pcfgParser = stanford.StanfordParser(model_path="E:/workplace/stanford-parser/edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
     self.depParser = stanford.StanfordDependencyParser() 
     
   def prepare(self, problemFile):
@@ -98,5 +98,5 @@ class Preprocessor:
 #def posTagging():
 
 if __name__ == "__main__":
-  prep = Preprocessor("data/MultiArith.json", False)
+  prep = Preprocessor("data/AddSub.json", False)
   prep.prepare("data/multi_arith/schema_all.json") 

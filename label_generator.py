@@ -28,9 +28,11 @@ class LcaLabelGenerator:
 
     with open(equationFile, 'r') as f:
       equationInfos = json.load(f)
-    
+
     for equationInfo in equationInfos:
       equation = equationInfo["lEquations"][0].split('=')[-1]
+      if self.debug:
+          print(equation)
       eqTokens = tokenizeEq(equation)
       if self.debug:
         print(eqTokens)

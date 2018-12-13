@@ -105,7 +105,7 @@ def find_unit(node):
           return unit_node
         else:
           unit_node = unit_node.parent()
-    return Tree('', [])
+    return ParentedTree('', [])
     
 def find_np(unit_node):
     r_np_node=[]

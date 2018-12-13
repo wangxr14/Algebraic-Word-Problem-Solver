@@ -20,7 +20,7 @@ class Unigram:
       self.corpus.append([])
       p_text = p['sQuestion']
       
-      sents_raw = nltk.word_tokenize(p_text) 
+      sents_raw = lemmatizeTokens(nltk.word_tokenize(p_text)) 
       self.corpus[i] = sents_raw
 
     self.word2id = {}
@@ -65,7 +65,7 @@ class BoW:
       self.corpus.append([])
       p_text = p['sQuestion']
       
-      sents_raw = nltk.word_tokenize(p_text) 
+      sents_raw = lemmatizeTokens(nltk.word_tokenize(p_text)) 
       self.corpus[i] = sents_raw
 
     self.word2id = {}
@@ -122,7 +122,7 @@ class FeatureGenerator:
       self.quantities[pid] = self.problems[pid]['quantities']
       question = self.problems[pid]['question']
       schema = self.problems[pid]['quantity_schema']
-      p_text = self.unigram.corpus[pid]
+      p_text = lemmatizeTokens(self.unigram.corpus[pid])
       if self.debug:
         print(self.problems[pid]['quantity_schema'])
       

@@ -1,4 +1,5 @@
 import nltk
+from nltk.stem import PorterStemmer, WordNetLemmatizer
 
 def isQuantity(w):  
   for c in w:
@@ -16,8 +17,13 @@ def isMathOp(w, mathOps):
 def tokenizeEq(equation):
   tokens = []
   nchar = len(equation)
+  print(equation, nchar)
+  print(equation[4])
   i = 0
   while i < nchar:
+    print(i, equation[i])
+    print(isQuantity(equation[i]))
+    print("OK")
     if isQuantity(equation[i]):
       j = i
       while isQuantity(equation[i:j+1]):
@@ -41,3 +47,10 @@ def tokenizeProblem(p_text):
       tokenized_problem.append(cur_sent)
       cur_sent = []
   return tokenized_problem
+
+def lemmatizeTokens(p_tokens):
+    wnl = WordNetLemmatizer()
+    lemma = []
+    for token in p_tokens:
+        lemma.append(wnl.lemmatize(token))
+    return lemma
