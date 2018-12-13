@@ -7,6 +7,7 @@ from evaluator import *
 from utils import *
 
 stage = 1
+debug = False
 dataPath = "data/multi_arith/"#"data/lca_solver_test/"
 schemaFile = "problems_all.json" #"test_problem.json"
 problemFile = "../AddSub.json"
@@ -20,10 +21,13 @@ goldPrefix = "gold"
 nFold = 6
 feat_choices = {
                 'bag-of-words': False,
-                'unigram': True,
+                'unigram': False,
                 'exact_mention': False
                 }
-
+constraints = {
+              'integer': True,
+              'positive': True
+              }
 if stage < 1:
   # Preprocessing
   print("Preprocessing ...")
@@ -36,13 +40,13 @@ if stage < 2:
                                       dataPath + problemFile, 
                                       dataPath + equationFile, 
                                       dataPath + mathGrammarFile,
-                                      debug=True)
+                                      debug=debug)
   featureGenerator.extractFeatures(feat_choices)
   featureGenerator.save(dataPath + featFile)
 
 if stage < 3:
   print("Cross-validation split ...")
-  featureLoader = LcaFeatureLoader(dataPath + featFile, debug=False)
+  featureLoader = LcaFeatureLoader(dataPath + featFile, debug=debug)
   featureLoader.nFoldSplit(nFold, dataPath + crossValPrefix)
 
 if stage < 4:
@@ -52,7 +56,7 @@ if stage < 4:
   for i in range(nFold):
     featFileTest = dataPath + crossValPrefix + '_' + str(i) + '.json'
     # LCA classification
-    lcaClassifier = LCA_Classifier(featFileTest, debug=False)
+    lcaClassifier = LCA_Classifier(featFileTest, debug=debug)
     lcaClassifier.fit()
     print("Crossvalidation test and compute the LCA score ...")
     _ = lcaClassifier.predict(dataPath + lcaScorePrefix + '_' + str(i) + '.json')
@@ -62,10 +66,9 @@ if stage < 5:
   # Find expression tree from LCA
   print("Solving ...")
   for i in range(nFold):
-    lcaSolver = LCASolver(dataPath + lcaScorePrefix + '_' + str(i) + '.json', debug=False)
+    lcaSolver = LCASolver(dataPath + lcaScorePrefix + '_' + str(i) + '.json', debug=debug, constraints=constraints)
     #lcaSolver = LCASolver(dataPath + lcaScorePrefix + '.json', debug=False)
     trees, lcas = lcaSolver.solve()
-    print("Predicted Expression: ", trees)
     with open(dataPath + predPrefix + '_trees_' + str(i) + '.json', 'w') as f:
       json.dump(trees, f, indent=4, sort_keys=True)
     
@@ -82,10 +85,20 @@ if stage < 6:
       json.dump(labels, f, indent=4, sort_keys=True)
   
   # Evaluate the expressions found by the solver
+  prec_avg = 0.
+  lcaprec_avg = 0.
+ 
   for i in range(nFold):
     evaluator = Evaluator(dataPath + goldPrefix + '_lcas_' + str(i) + '.json', 
                           dataPath + predPrefix + '_lcas_' + str(i) + '.json')
     print('###', i, 'Fold Validation Results: ')
-    print("Expression Precision: ", evaluator.precision())
-    print("LCA Label Precision: ", evaluator.lcaPrecision())
-    print("LCA Label Recall: ", evaluator.lcaRecall())
+    prec = evaluator.precision()
+    lcaprec = evaluator.lcaPrecision()
+    #recall = evaluator.lcaRecall()
+    prec_avg += prec
+    lcaprec_avg += lcaprec
+    print("Expression Precision: ", prec)
+    print("LCA Label Precision: ", lcaprec)
+    #print("LCA Label Recall: ", )
+  print("Validation Expression Precision: ", prec_avg / nFold)
+  print("LCA Label Precision: ", lcaprec_avg / nFold)

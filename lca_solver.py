@@ -9,11 +9,12 @@ import json
 #TODO: Implement a function to check if a tree is monotonic
 class LCASolver:
   
-  def __init__(self, lcaScoreFile, reversible=['+', '*'], debug=False):
+  def __init__(self, lcaScoreFile, reversible=['+', '*'], debug=False, constraints=None):
     self.debug = debug
     self.lcaScores, self.qs, self.mathOps = self.readScore(lcaScoreFile)
     self.qNodes = []
     self.reversible = reversible
+    self.constraints = constraints
 
   def readScore(self, lcaScoreFile):
     qToLcaScores = {}
@@ -73,10 +74,16 @@ class LCASolver:
           if q1.leafIds != q2.leafIds:
             for op in self.mathOps:
               score_state_next = self.merge(lcaScore, q1, q2, score_state, op)
+              # Check if the current state is complete and if so,
+              # whether it satisfies the constraints
+              if len(score_state_next[1]) == 1:
+                if not self.checkConstraints(score_state_next):
+                  continue
+
               #if self.debug:
               #  print("Next state:")
               #  self.printState(score_state_next)
-
+            
               self.state_queue.append(score_state_next)
               # Notice here state_queue has the type list after being sorted
       self.state_queue = sorted(self.state_queue, key=lambda x:x[0], reverse=True)
@@ -94,6 +101,35 @@ class LCASolver:
       if len(s[1]) > 1:
         return 0
     return 1
+
+  def checkConstraints(self, s):
+    if not self.constraints:
+      return 1
+    
+    if len(s[1]) == 1:
+      res = s[1][0].eval()
+      if self.debug:
+        print(res, s[1][0].toString())
+      if 'integer' in self.constraints:
+        if 'positive' in self.constraints:
+          if res == int(res) and res > 0:
+            return 1
+            
+        elif res == int(res):
+          if self.debug:
+            print('Constraint not satisfied')
+          return 1
+      else:
+        if 'positive' in self.constraints:
+          if res > 0:
+            return 1
+    else:
+      print('Incomplete state!')
+      return 0
+    if self.debug:
+      print('State do not satisfy the constraints')
+    return 0
+
 
   def merge(self, lcaScore, q1, q2, score_state, op):
     score = score_state[0]
