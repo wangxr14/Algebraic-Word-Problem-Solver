@@ -10,9 +10,9 @@ This is a python implementation of the following work:
 ~~~~
 
 #### Dependencies
-Python 3.6 
-NLTK 3.2.3 
-(For generating quantity schema only) Stanford parsers 3.9.2 from https://nlp.stanford.edu/software/lex-parser.shtml#Download
+Python 3.6  
+NLTK 3.2.3  
+(For generating quantity schema only) Stanford parsers 3.9.2 from https://nlp.stanford.edu/software/lex-parser.shtml#Download. 
 
 #### Data:
 
