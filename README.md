@@ -45,6 +45,10 @@ To change the type of constraint used, modify the following in main.py:
 ~~~~
   constraints = {...}
 ~~~~
+To generate quantity schema, modify the dataset path in preprocessor.py and run:
+~~~~
+  python preprocessor.py
+~~~~
 
 #### Questions
 Feel free to email lwang114@illinois.edu and xinranw5@illinois.edu for any further questions
