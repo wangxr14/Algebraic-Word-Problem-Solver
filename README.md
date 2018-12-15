@@ -10,7 +10,7 @@ This is a python implementation of the following work:
 ~~~~
 
 #### Dependencies
-Python 3.6  
+Python 3.6 (Anaconda)
 NLTK 3.2.3  
 Scikit-learn 0.19.0. 
 (For generating quantity schema only) Stanford parsers 3.9.2 from https://nlp.stanford.edu/software/lex-parser.shtml#Download. 
