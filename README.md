@@ -36,5 +36,15 @@ following filename:
   gold_lcas_*.json: Store the correct LCA labels
 ~~~~
 
+#### Advanced Options
+To change the type of features used, go into main.py as modify the following code:
+~~~~
+  feat_choices = {...}
+~~~~
+To change the type of constraint used, modify the following in main.py:
+~~~~
+  constraints = {...}
+~~~~
+
 #### Questions
 Feel free to email lwang114@illinois.edu and xinranw5@illinois.edu for any further questions
