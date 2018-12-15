@@ -35,3 +35,6 @@ following filename:
   pred_tree_*.json: Store the predicted expression trees
   gold_lcas_*.json: Store the correct LCA labels
 ~~~~
+
+#### Questions
+Feel free to email lwang114@illinois.edu and xinranw5@illinois.edu for any further questions
