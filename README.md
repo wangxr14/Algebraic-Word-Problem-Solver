@@ -9,6 +9,11 @@ This is a python implementation of the following work:
   EMNLP 2015.
 ~~~~
 
+#### Dependencies
+Python 3.6
+NLTK 3.2.3
+(For generating quantity schema only) Stanford parsers 3.9.2 from https://nlp.stanford.edu/software/lex-parser.shtml#Download
+
 #### Data:
 
 The data are from http://lang.ee.washington.edu/MAWPS/ developed by:
@@ -45,7 +50,7 @@ To change the type of constraint used, modify the following in main.py:
 ~~~~
   constraints = {...}
 ~~~~
-To generate quantity schema, modify the dataset path in preprocessor.py and run:
+To generate quantity schema, first modify the dataset path in preprocessor.py and run:
 ~~~~
   python preprocessor.py
 ~~~~
