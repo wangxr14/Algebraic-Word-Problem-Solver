@@ -102,16 +102,17 @@ class LCASolver:
         return 0
     return 1
 
+  # TODO: Need more general way of checking constraints
   def checkConstraints(self, s):
-    if not self.constraints:
+    if not self.constraints['integer'] and not self.constraints['positive']:
       return 1
     
     if len(s[1]) == 1:
       res = s[1][0].eval()
       if self.debug:
         print(res, s[1][0].toString())
-      if 'integer' in self.constraints:
-        if 'positive' in self.constraints:
+      if self.constraints['integer']:
+        if self.constraints['positive']:
           if res == int(res) and res > 0:
             return 1
             
@@ -120,7 +121,7 @@ class LCASolver:
             print('Constraint not satisfied')
           return 1
       else:
-        if 'positive' in self.constraints:
+        if self.constraints['positive']:
           if res > 0:
             return 1
     else:

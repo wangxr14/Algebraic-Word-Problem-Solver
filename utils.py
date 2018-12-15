@@ -1,11 +1,14 @@
 import nltk
-from nltk.stem import PorterStemmer, WordNetLemmatizer
 
+DEBUG = False
 def isQuantity(w):  
   for c in w:
     if c > '9' or c < '0':
       # Check if it is a floating point value or fraction
       if c != '.':
+        return 0
+      # Check if it is period 
+      elif len(w) == 1:
         return 0
   return 1
       
@@ -17,16 +20,13 @@ def isMathOp(w, mathOps):
 def tokenizeEq(equation):
   tokens = []
   nchar = len(equation)
-  print(equation, nchar)
-  print(equation[4])
   i = 0
   while i < nchar:
-    print(i, equation[i])
-    print(isQuantity(equation[i]))
-    print("OK")
     if isQuantity(equation[i]):
       j = i
-      while isQuantity(equation[i:j+1]):
+      while isQuantity(equation[i:j+1]) and j <= nchar:
+        if DEBUG:
+          print(equation[i:j+1], nchar)
         j += 1
       tokens.append(equation[i:j])
       i = j 
@@ -47,10 +47,3 @@ def tokenizeProblem(p_text):
       tokenized_problem.append(cur_sent)
       cur_sent = []
   return tokenized_problem
-
-def lemmatizeTokens(p_tokens):
-    wnl = WordNetLemmatizer()
-    lemma = []
-    for token in p_tokens:
-        lemma.append(wnl.lemmatize(token))
-    return lemma

@@ -7,7 +7,7 @@ from nltk.tree import ParentedTree
 from nltk import pos_tag
 from copy import deepcopy
 
-DEBUG = False
+DEBUG = True
 TOP = 'TOP'
 
 def find_associated_verb(depTree, pcfgTree):
@@ -27,6 +27,8 @@ def find_associated_verb(depTree, pcfgTree):
       # Find the associated verb for each quantity
       if isQuantity(node['word']):
         quantities.append(node)
+        if DEBUG:
+          print(node['word'])
         a_verb_node = depTree.nodes[node['head']] 
         found = 0
         while a_verb_node['tag'] != TOP:
@@ -169,7 +171,7 @@ def find_quantities(pcfg_tree):
     quantity_label = 'CD'
     def traverse(t):
         if t.height() == 2:
-            if t.label() == quantity_label and isQuantity(t.leaves()[0]):
+            if isQuantity(t.leaves()[0]):
               quantity_list.append(t)
             return
         else:
@@ -184,11 +186,12 @@ def dealWithSentence(pcfgTree, depTree):
     retObj['quantities'] = []
     retObj['quantity_schema'] = []
     quantity_node_list = find_quantities(pcfgTree)
-    if DEBUG:
-      print(quantity_node_list)
     a_verb_nodes, _ = find_associated_verb(depTree, pcfgTree)    
-   
+    
     for i, q in enumerate(quantity_node_list):
+        if DEBUG:
+          print("Line 193: ", i, quantity_node_list)
+
         quantityObj = {}
         a_verb_node = a_verb_nodes[i]
         if a_verb_node['tag'] == TOP:
@@ -258,8 +261,7 @@ def dealWithSentence(pcfgTree, depTree):
         # Question      
         # Add to retObj
         retObj['quantity_schema'].append(quantityObj)
-        retObj['quantities'].append(q.leaves()[0]) 
-    
+        retObj['quantities'].append(q.leaves()[0])     
 
     return retObj
 
@@ -279,7 +281,9 @@ if __name__ == "__main__":
   pcfgParser = stanford.StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
   depParser = stanford.StanfordDependencyParser()
  
-  sent = "Debby had 32 pieces of candy while her sister had 42" #"Each chocalate costs 5 dollars per bar and each cake costs 3 dollars per gram"#"If each question was worth 5 points, what was his final score?" 
+  sent = "Kate has 223 pennies. John has 388 pennies. How many more pennies does John have?" 
+  #"Lino picked up 292 shells at the seashore in the morning and 324 shells in the afternoon." 
+  #"Debby had 32 pieces of candy while her sister had 42" #"Each chocalate costs 5 dollars per bar and each cake costs 3 dollars per gram"#"If each question was worth 5 points, what was his final score?" 
   sentences_pcfg = pcfgParser.raw_parse(sent) 
   pcfg_tree = None
   for line in sentences_pcfg:

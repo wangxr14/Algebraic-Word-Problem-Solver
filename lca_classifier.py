@@ -7,19 +7,34 @@ import numpy as np
 # TODO: Implement a relevance filter
 # TODO: Implement batch training and cross validation
 class LCA_Classifier:
-  def __init__(self, featFile, debug=False):
+  def __init__(self, featFile, relevScore=None, debug=False):
     self.debug = debug
     self.clf = svm.SVC(gamma='auto', probability=True)
     self.mathOps = []
     self.opToId = {}
     self.prblmToQs = {}
+    self.relevScore = relevScore
     with open(featFile, 'r') as f:
       featDict = json.load(f) 
      
     featDictTrain = featDict['train']
     featDictVal = featDict['val']
-    self.featTrain, self.labelTrain, self.featIdTrain = self.loadFeatures(featDictTrain)
-    self.featVal, self.labelVal, self.featIdVal = self.loadFeatures(featDictVal)
+    self.featTrain, self.labelTrain, self.featIdTrain, badIdsTr = self.loadFeatures(featDictTrain)
+    self.featVal, self.labelVal, self.featIdVal, badIdsVal = self.loadFeatures(featDictVal)
+
+    # TODO: Write the cleanup version of the feature file back; may need better way
+    # to handle corrupted features
+    with open(featFile, 'w') as f:
+      for i in badIdsTr:
+        del featDict['train']['lca_features'][i]
+        del featDict['train']['lca_labels'][i]
+
+      for i in badIdsVal:
+        del featDict['val']['lca_features'][i]
+        del featDict['val']['lca_labels'][i]
+
+      json.dump(featDict, f, indent=4, sort_keys=True)
+    
 
   def loadFeatures(self, featDict): 
     lcafeatDict = featDict['lca_features']
@@ -31,7 +46,7 @@ class LCA_Classifier:
     feats = []
     labels = []
     featIds = []
-
+    badIds = []
     for pid in range(len(lcafeatDict)):
       
       feats.append([])
@@ -39,9 +54,24 @@ class LCA_Classifier:
       # Turns out this is necessary or will lose track of feature order
       featIds.append([])
 
+      n_q = len(lcafeatDict[pid].keys()) - 1
+      n_q_relev = len(labelDict[int(pid)].keys())
+      
+      relevKeys = labelDict[int(pid)].keys() 
+      if n_q != n_q_relev:
+        # TODO: Implement relevance filter
+        #if self.relevScore:
+        if self.debug:
+          print("Found irrelevant quantities", n_q, n_q_relev, lcafeatDict[pid]['iIndex'], pid)
+        # TODO: Find a better way to handle the exception when quantities are not extracted 
+        # properly
+        if not n_q:
+          if self.debug:
+            print("Found improper quantity extraction")
+          relevKeys = [] 
       # Go through each type of the features for each quantity pairs
       # and convert them into a single vector
-      for featId in lcafeatDict[pid].keys(): 
+      for featId in relevKeys: 
         if featId == 'iIndex': 
           continue
         featIds[pid].append(featId)
@@ -54,26 +84,43 @@ class LCA_Classifier:
           else:
             feat.append(feat_elem)
         feats[pid].append(feat)
-        # TODO: weird to have pid to be str instead of integer, may change later
         if self.debug:
-          print(labelDict[int(pid)], featId)
+          print(labelDict[int(pid)], featId) 
+
         op = labelDict[int(pid)][featId]
         labels[pid].append(self.opToId[op])
+      if self.debug:
+        if len(feats[pid]) == 0:
+          print(pid, feats[pid], isinstance(feats[pid], list))
+      if len(feats) and len(labels):
+        feats[pid] = np.array(feats[pid])
+        labels[pid] = np.array(labels[pid])
+  
+    feats_clean = []
+    labels_clean = []
+    for feat, lbl in zip(feats, labels):
       #if self.debug:
-      #  print(feats[pid]) 
-      feats[pid] = np.array(feats[pid])
-      labels[pid] = np.array(labels[pid])
+      #  print(feat)
 
-    #with open(labelFile, 'r') as f:
-    #  labelDictAll = json.load(f)
-    return feats, labels, featIds 
+      # TODO: Need better way to handle bad quantity extraction
+      if len(list(feat)) == 0:
+        if self.debug:
+          print("Found bad training example")
+        badIds.append(pid)
+        continue
+
+      feats_clean.append(feat)
+      labels_clean.append(lbl)
+
+    if self.debug:
+      print(len(feats_clean), len(labels_clean), feats[0].shape)
+    
+    return feats_clean, labels_clean, featIds, badIds 
  
   def fit(self, crossValidate=True):
     self.featTrain = np.concatenate(self.featTrain)
     self.labelTrain = np.concatenate(self.labelTrain)
 
-    if self.debug:
-      print(self.featTrain.shape, self.labelTrain.shape)
     self.clf.fit(self.featTrain, self.labelTrain)
 
   def predict(self, scoreFile="data/lca_solver_test/test_lca_scores.json"):
@@ -89,10 +136,10 @@ class LCA_Classifier:
       self.opIdToProbId = {opId:probId for probId, opId in enumerate(self.clf.classes_)}
       
       scores = self.clf.predict_log_proba(self.featVal[pid])
-      if self.debug:
-        print(labelsPred, self.clf.classes_)
-        print(self.mathOps)
-        print(scores)
+      #if self.debug:
+      #  print(labelsPred, self.clf.classes_)
+      #  print(self.mathOps)
+      #  print(scores)
       
       scoreDict.append({})
       for j, featId in enumerate(self.featIdVal[pid]):
@@ -156,7 +203,7 @@ if __name__ == "__main__":
   #with open(labelFile, 'w') as f:
   #  json.dump(labels, f)  
   
-  featFile = "data/lca_solver_test/test_features_6fold_0.json"
+  featFile = "data/add_sub/features_3fold_0.json"
   
   lcaClf = LCA_Classifier(featFile, debug=True) 
   lcaClf.fit()

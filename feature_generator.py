@@ -20,7 +20,7 @@ class Unigram:
       self.corpus.append([])
       p_text = p['sQuestion']
       
-      sents_raw = lemmatizeTokens(nltk.word_tokenize(p_text)) 
+      sents_raw = nltk.word_tokenize(p_text) 
       self.corpus[i] = sents_raw
 
     self.word2id = {}
@@ -39,6 +39,8 @@ class Unigram:
             count += 1
     self.word2id['UNK'] = count
     self.nvocab = count + 1
+    with open('word2id.json', 'w') as f:
+      json.dump(self.word2id, f, indent=4, sort_keys=4)
     print("Total number of vocabs with the desired tags:", count)
 
   def extract(self, sentence, window_size=6):
@@ -65,7 +67,7 @@ class BoW:
       self.corpus.append([])
       p_text = p['sQuestion']
       
-      sents_raw = lemmatizeTokens(nltk.word_tokenize(p_text)) 
+      sents_raw = nltk.word_tokenize(p_text) 
       self.corpus[i] = sents_raw
 
     self.word2id = {}
@@ -107,7 +109,8 @@ class FeatureGenerator:
     
     with open(problemFile, 'r') as f:
       self.raw_problems = json.load(f)
-    # TODO: Confusing: self.bow.problems store the raw problems while self.problems store the quantity schemas
+    # TODO: Confusing: self.bow.problems store the raw problems 
+    # while self.problems store the quantity schemas
     self.bow = BoW(problemFile)
     self.unigram = Unigram(problemFile)
 
@@ -125,9 +128,10 @@ class FeatureGenerator:
       self.quantities[pid] = self.problems[pid]['quantities']
       question = self.problems[pid]['question']
       schema = self.problems[pid]['quantity_schema']
-      p_text = lemmatizeTokens(self.unigram.corpus[pid])
+      p_text = self.unigram.corpus[pid]
       if self.debug:
         print(self.problems[pid]['quantity_schema'])
+        print(self.quantities[pid])
       
       #self.relevanceFeatures[pid] = self.extractRelevanceFeatures(schema, question)
       self.lcaFeatures[pid] = self.extractLcaFeatures(schema, question, p_text, feat_choices)
@@ -204,7 +208,9 @@ class FeatureGenerator:
     bows = []
     unigrams = []
     q_contexts = self.extractQuantityContext(p_text)
-       
+    if self.debug:
+      print(q_contexts)
+
     # Find the unigram feature for each quantity with neighboring 
     # adjective and adverbs as context   
     for q in range(len(schema)):
@@ -254,64 +260,67 @@ class FeatureGenerator:
         verb1 = verb1.split('_')[-1]
         verb2 = verb2.split('_')[-1]
            
-        if verb1 == verb2:
-          feat['verb_match_form'] = 1.
-        else:
-          feat['verb_match_form'] = 0.
+        if feat_choices['verb_feat']:
+          if verb1 == verb2:
+            feat['verb_match_form'] = 1.
+          else:
+            feat['verb_match_form'] = 0.
+        
+        if feat_choices['unit_feat']:
+          if len(rate1):
+            feat['is_rate_1'] = 1.
+          else:
+            feat['is_rate_1'] = 0.
 
-        if len(rate1):
-          feat['is_rate_1'] = 1.
-        else:
-          feat['is_rate_1'] = 0.
-
-        if len(rate2):
-          feat['is_rate_2'] = 1.
-        else:
-          feat['is_rate_2'] = 0.
+          if len(rate2):
+            feat['is_rate_2'] = 1.
+          else:
+            feat['is_rate_2'] = 0.
   
-        if len(set(units1).intersection(set(units2))) > 0:
-          feat['unit_match'] = 1.
-        else:
-          feat['unit_match'] = 0.
+          if len(set(units1).intersection(set(units2))) > 0:
+            feat['unit_match'] = 1.
+          else:
+            feat['unit_match'] = 0.
 
-        # If one of the quantity is a rate, determine which component of
-        # it matches the other quantity's unit
-        flag = 0
-        if feat['is_rate_1'] or feat['is_rate_2']:
-          for k, unit1 in enumerate(units1):
-            for l, unit2 in enumerate(units2):
-              if unit1 == unit2:
-                feat['unit_match_pos_1'] = k
-                feat['unit_match_pos_2'] = l
-                flag = 1
+          # If one of the quantity is a rate, determine which component of
+          # it matches the other quantity's unit
+          flag = 0
+          if feat['is_rate_1'] or feat['is_rate_2']:
+            for k, unit1 in enumerate(units1):
+              for l, unit2 in enumerate(units2):
+                if unit1 == unit2:
+                  feat['unit_match_pos_1'] = k
+                  feat['unit_match_pos_2'] = l
+                  flag = 1
             
-        if not flag:
-          feat['unit_match_pos_1'] = -1
-          feat['unit_match_pos_2'] = -1
+          if not flag:
+            feat['unit_match_pos_1'] = -1
+            feat['unit_match_pos_2'] = -1
 
 
         # Check if the first value is larger than the second one; useful
         # for detecting reverse operation
-        #if float(q1) > float(q2):
-        #  feat['q1_greater'] = 1.
-        #else:
-        #  feat['q1_greater'] = 0.
+        if float(q1) > float(q2):
+          feat['q1_greater'] = 1.
+        else:
+          feat['q1_greater'] = 0.
 
         # Check if "more", "less" and "than" appear in the question,
         # as they are useful to know the kind of operations used in the 
         # question
-        feat['compare_words_in_question'] = 0.
-        for w in ["more", "less", "than"]:
-          if w in question:
-            feat['compare_words_in_question'] = 1.
-            break
+        if feat_choices['question_feat']:
+          feat['compare_words_in_question'] = 0.
+          for w in ["more", "less", "than"]:
+            if w in question:
+              feat['compare_words_in_question'] = 1.
+              break
         
         lcaFeatures['_'.join([str(q1), str(q2)])] = feat
 
     return lcaFeatures   
 
-  def extractQuantityContext(self, p_text, window_size=5, filter_tags=['JJ', 'JJR', 'RBR']):
-    width = int((window_size - 1) / 2)
+  def extractQuantityContext(self, p_text, window_size=6, filter_tags=['JJ', 'JJR', 'RBR']):
+    width = int(window_size / 2)
     quantity_contexts = []
     if self.debug:
       print(p_text)

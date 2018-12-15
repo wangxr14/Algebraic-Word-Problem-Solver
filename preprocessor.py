@@ -2,6 +2,7 @@ import json
 import os
 from nltk.tree import ParentedTree
 from nltk.parse import stanford
+from nltk.tokenize import sent_tokenize
 from quantity_schema2 import *
 from utils import *
 
@@ -11,16 +12,16 @@ class Preprocessor:
     self.debug = debug
     with open(rawProblemFile, 'r') as f:
       self.problems = json.load(f)
-    os.environ['STANFORD_PARSER'] = 'E://workplace/stanford-parser/jars/stanford-parser.jar'
-    os.environ['STANFORD_MODELS'] = 'E://workplace/stanford-parser/jars/stanford-parser-3.9.2-models.jar'
+    os.environ['STANFORD_PARSER'] = '/Users/liming/nltk_data/stanford-parser-full-2018-10-17/'
+    os.environ['STANFORD_MODELS'] = '/Users/liming/nltk_data/stanford-parser-full-2018-10-17/'
 
-    self.pcfgParser = stanford.StanfordParser(model_path="E:/workplace/stanford-parser/edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
+    self.pcfgParser = stanford.StanfordParser(model_path="edu/stanford/nlp/models/lexparser/englishPCFG.ser.gz")
     self.depParser = stanford.StanfordDependencyParser() 
     
   def prepare(self, problemFile):
     prblmDict = self.extractQuantitySchema()
     with open(problemFile, 'w') as f:
-      json.dump(prblmDict, f)
+      json.dump(prblmDict, f, indent=4, sort_keys=True)
   
   def extractQuantitySchema(self):
     qSchemas = []
@@ -28,7 +29,7 @@ class Preprocessor:
       print('Problem', i)
       # TODO: Use the tokenizer instead: can be a problem when dealing with
       # floating point values
-      sents = problem['sQuestion'].split('.')
+      sents = nltk.sent_tokenize(problem['sQuestion'])
       pSents = self.pcfgParser.raw_parse_sents(sents)
       dSents = self.depParser.raw_parse_sents(sents)
       
@@ -104,10 +105,5 @@ class Preprocessor:
 #def posTagging():
 
 if __name__ == "__main__":
-<<<<<<< HEAD
-  prep = Preprocessor("data/AddSub.json", False)
-  prep.prepare("data/multi_arith/schema_all.json") 
-=======
-  prep = Preprocessor("data/single_op/SingleOp.json", True)
-  prep.prepare("data/single_op/schema_all.json") 
->>>>>>> 714bdda1cf7ad10d34920f56914328e790291fef
+  prep = Preprocessor("data/add_sub/AddSub.json", True)
+  prep.prepare("data/add_sub/schema_all_test.json") 

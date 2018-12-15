@@ -5,27 +5,63 @@ from lca_solver import *
 from data_loader import *
 from evaluator import *
 from utils import *
+import argparse
 
 stage = 1
 debug = False
-dataPath = "data/multi_arith/"#"data/lca_solver_test/"
-schemaFile = "problems_all.json" #"test_problem.json"
-problemFile = "../AddSub.json"
-equationFile = "../AddSub.json" #"test_equation.json"
-mathGrammarFile = "mathGrammar.pcfg"  
-featFile = "features.json" #"test_features.json" 
-crossValPrefix = "features_6fold" #"test_features_6fold"
-lcaScorePrefix = "lca_scores" #"test_lca_scores.json"
+parser = argparse.ArgumentParser(description='Choose dataset')
+parser.add_argument('--dset', help='Choose the name of the dataset')
+
+args = parser.parse_args()
+
+dataPath = "data/multi_arith/"
+schemaFile = "problems_all.json" 
+problemFile = "../MultiArith.json"
+equationFile = "../MultiArith.json"   
+nFold = 6
+if args.dset == 'MultiArith':
+  dataPath = "data/multi_arith/"
+  schemaFile = "problems_all.json" 
+  problemFile = "../MultiArith.json"
+  equationFile = "../MultiArith.json"   
+  nFold = 6
+
+elif args.dset == 'SingleOp':
+  dataPath = "data/single_op/"
+  schemaFile = "schema_all.json" 
+  problemFile = "../SingleOp.json"
+  equationFile = "../SingleOp.json"   
+  nFold = 5
+
+elif args.dset == 'AddSub':
+  dataPath = "data/add_sub/"
+  schemaFile = "schema_all.json" 
+  problemFile = "AddSub.json"
+  equationFile = "AddSub.json"
+  nFold = 3
+
+#dataPath = "data/lca_solver_test/"
+#schemaFile = "schema_all.json" 
+#problemFile = "test_equation.json"
+#equationFile = "test_features.json"
+
+featFile = "features.json" 
+crossValPrefix = "features_{}fold".format(str(nFold))
+lcaScorePrefix = "lca_scores"
+mathGrammarFile = "mathGrammar.pcfg"    
 predPrefix = "pred"
 goldPrefix = "gold"
-nFold = 6
+
 feat_choices = {
                 'bag-of-words': False,
                 'unigram': False,
-                'exact_mention': False
-                }
+                'exact_mention': True,
+                'verb_feat': True,
+                'unit_feat': True,
+                'question_feat': True
+              }
 constraints = {
-              'integer': True,
+              'integer': False,
               'positive': True
               }
 if stage < 1:
@@ -90,7 +126,8 @@ if stage < 6:
  
   for i in range(nFold):
     evaluator = Evaluator(dataPath + goldPrefix + '_lcas_' + str(i) + '.json', 
-                          dataPath + predPrefix + '_lcas_' + str(i) + '.json')
+                          dataPath + predPrefix + '_lcas_' + str(i) + '.json',
+                          debug=debug)
     print('###', i, 'Fold Validation Results: ')
     prec = evaluator.precision()
     lcaprec = evaluator.lcaPrecision()
